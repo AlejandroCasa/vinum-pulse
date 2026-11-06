@@ -2,16 +2,18 @@
 
 This file tracks prioritized engineering improvements, features, and completed milestones for **Vinum Pulse**.
 
-## 🎯 Prioritized Backlog
+## 🎯 Prioritized Backlog (Sprint 2026-W46)
 
-### P0 — Kubernetes Deployment & Local Orchestration
+### P0 — CI/CD Standard, Database Persistence & Dynamic Geo-Map
+- [ ] **[cicd/qa]** Full CI/CD & Quality Gate Suite (`.github/workflows/ci.yml` + `pyproject.toml`): Integrate `black`, `isort`, `ruff`, `mypy` (strict), `pytest`, `pytest-cov` (`>=85%`), `bandit` (SAST), `pip-audit` (SCA), and `radon` / `xenon` (cyclomatic complexity `<= B`) as automated GitHub Actions gates (Impact: 5/5 | Effort: S)
+- [ ] **[database]** SQLite Persistence Engine & Expanded Enological Seed (`app/database.py` + `app/models.py`): Migrate static arrays to persistent SQLite database (via `SQLAlchemy 2.0` / `SQLModel`) seeded with **35+ authentic Spanish wines across 12 D.O. regions**, geolocated wineries (`lat`, `lon`), terroir/soil/altitude profiles, regional dishes, and persistent **"Mi Bodega Personal" (`CRUD /api/v1/cellar`)** (Impact: 5/5 | Effort: M)
+- [ ] **[dynamic-map]** Interactive Cartographic Atlas of Spanish Wine Regions & Wineries (`GET /` + Leaflet.js / GeoJSON): Build an interactive map of Spain displaying D.O. zones and winery markers; clicking a region or winery reveals its Terroir Card (climate, soil, altitude, signature grape) and dynamically filters the catalog and 5D Sensory Radar (Impact: 5/5 | Effort: M)
+
+### P1 — Flagship Non-Technical User Experience & Sommelier Planner
+- [ ] **[event-planner]** Interactive Evening & 3-Course Menu Sommelier Planner (`POST /api/v1/pairings/menu-plan`): Let any user select an occasion (*Cena Romántica*, *Barbacoa con Amigos*, *Comida Familiar*, *Tapas Gourmet*) and a 3-course menu (*Entrante + Principal + Postre/Queso*) within a target budget. Automatically compute optimal wine serving progression (light-to-full structure), plain-language serving tips (*"45 min in fridge before serving"*, *"Uncork 30 min early"*), vintage peak status semaphore, and a **Printable Sommelier Menu Card** for guests (Impact: 5/5 | Effort: M)
+
+### P2 — Kubernetes Orchestration & Weighted Algorithms
 - [ ] **[k8s]** Declarative Kubernetes Manifests (`k8s/`): Create `deployment.yaml` and `service.yaml` with hardened `securityContext` (`runAsNonRoot: true`, `UID 10001`, `readOnlyRootFilesystem: true`, probes on `/healthz`) for local `k3s` (Impact: 4/5 | Effort: S)
-
-### P1 — Cellar Analytics & Vintage Aging Simulator
-- [ ] **[cellar]** Cellar Valuation & Vintage Peak Window Simulator (`/api/v1/cellar`): Interactive cellar tracker showing bottle aging curves, optimal uncorking windows by vintage, and total cellar valuation charts (Impact: 4/5 | Effort: M)
-
-### P2 — Sommelier Menu Builder & Export
-- [ ] **[export]** Interactive Multi-Course Dinner Pairing Card: Generate a visual printable tasting sheet matching starter, main course, and dessert with optimal wine flight progression (Impact: 3/5 | Effort: S)
 
 ---
 
