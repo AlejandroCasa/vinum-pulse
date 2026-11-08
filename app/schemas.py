@@ -1,12 +1,11 @@
 """Pydantic data models and enums for Vinum Pulse sommelier pairing engine."""
 
-from enum import Enum
-from typing import List, Optional
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class WineType(str, Enum):
+class WineType(StrEnum):
     """Enumeration of wine types."""
 
     RED = "Red"
@@ -143,7 +142,7 @@ class Dish(BaseModel):
         ...,
         description="Ideal sensory profile required in wine to complement the dish.",
     )
-    suggested_wine_type: Optional[WineType] = Field(
+    suggested_wine_type: WineType | None = Field(
         default=None,
         description="Recommended default wine category for this dish.",
     )
@@ -162,7 +161,7 @@ class DishPairingRequest(BaseModel):
         gt=0.0,
         description="Maximum allowed bottle budget in euros.",
     )
-    preferred_type: Optional[WineType] = Field(
+    preferred_type: WineType | None = Field(
         default=None,
         description="Optional wine type preference filter.",
     )
@@ -185,7 +184,7 @@ class PairingRecommendation(BaseModel):
         ...,
         description="Top-ranked wine matching sensory profile within budget.",
     )
-    alternative_wines: List[WineProfile] = Field(
+    alternative_wines: list[WineProfile] = Field(
         default_factory=list,
         description="Alternative pairing options within budget.",
     )

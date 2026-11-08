@@ -1,7 +1,6 @@
-"""Curated enological database and multi-vector sommelier pairing engine."""
+﻿"""Curated enological database and multi-vector sommelier pairing engine."""
 
 import math
-from typing import Dict, List, Optional
 
 from app.schemas import (
     Dish,
@@ -14,7 +13,7 @@ from app.schemas import (
 )
 
 # Curated reference catalog of premier Spanish wines across major D.O.s
-CURATED_WINES: List[WineProfile] = [
+CURATED_WINES: list[WineProfile] = [
     WineProfile(
         id="vina-ardanza-reserva",
         name="Viña Ardanza Reserva",
@@ -210,7 +209,7 @@ CURATED_WINES: List[WineProfile] = [
 ]
 
 # Gastronomic catalog of iconic Spanish dishes
-CURATED_DISHES: List[Dish] = [
+CURATED_DISHES: list[Dish] = [
     Dish(
         id="chuleton-brasa",
         name="Chuletón de vaca vieja a la brasa",
@@ -282,23 +281,23 @@ class SommelierEngine:
 
     def __init__(
         self,
-        wines: Optional[List[WineProfile]] = None,
-        dishes: Optional[List[Dish]] = None,
+        wines: Optional[list[WineProfile]] = None,
+        dishes: Optional[list[Dish]] = None,
     ) -> None:
         """Initialize engine with curated catalogs or custom datasets."""
-        self._wines: List[WineProfile] = list(wines or CURATED_WINES)
-        self._dishes: List[Dish] = list(dishes or CURATED_DISHES)
-        self._dish_index: Dict[str, Dish] = {d.id: d for d in self._dishes}
-        self._wine_index: Dict[str, WineProfile] = {w.id: w for w in self._wines}
+        self._wines: list[WineProfile] = list(wines or CURATED_WINES)
+        self._dishes: list[Dish] = list(dishes or CURATED_DISHES)
+        self._dish_index: dict[str, Dish] = {d.id: d for d in self._dishes}
+        self._wine_index: dict[str, WineProfile] = {w.id: w for w in self._wines}
 
     def get_wines(
         self,
-        appellation: Optional[str] = None,
-        wine_type: Optional[WineType] = None,
-        max_price: Optional[float] = None,
-    ) -> List[WineProfile]:
+        appellation: str | None = None,
+        wine_type: WineType | None = None,
+        max_price: float | None = None,
+    ) -> list[WineProfile]:
         """Filter wines by designation of origin, wine type, or maximum budget."""
-        results: List[WineProfile] = []
+        results: list[WineProfile] = []
         for wine in self._wines:
             if (
                 appellation
@@ -312,21 +311,21 @@ class SommelierEngine:
             results.append(wine)
         return results
 
-    def get_wine_by_id(self, wine_id: str) -> Optional[WineProfile]:
+    def get_wine_by_id(self, wine_id: str) -> WineProfile | None:
         """Fetch a single wine by its unique slug identifier."""
         return self._wine_index.get(wine_id)
 
-    def get_dishes(self) -> List[Dish]:
+    def get_dishes(self) -> list[Dish]:
         """Return all cataloged dishes."""
         return list(self._dishes)
 
-    def get_dish_by_id(self, dish_id: str) -> Optional[Dish]:
+    def get_dish_by_id(self, dish_id: str) -> Dish | None:
         """Fetch a single dish by its unique slug identifier."""
         return self._dish_index.get(dish_id)
 
-    def get_regions(self) -> List[RegionSummary]:
+    def get_regions(self) -> list[RegionSummary]:
         """Aggregate wine catalog by Designation of Origin (appellation)."""
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for wine in self._wines:
             counts[wine.appellation] = counts.get(wine.appellation, 0) + 1
 
@@ -342,7 +341,7 @@ class SommelierEngine:
             "D.O. Corpinnat / Penedès": "Mediterráneo marítimo templado",
         }
 
-        summaries: List[RegionSummary] = []
+        summaries: list[RegionSummary] = []
         for app, count in counts.items():
             climate = climate_map.get(
                 app, "Mediterráneo continental característico"
@@ -385,7 +384,7 @@ class SommelierEngine:
             raise ValueError(f"Dish with id '{request.dish_id}' not found.")
 
         # Candidate pool matching budget and optional preferred wine type
-        candidates: List[WineProfile] = []
+        candidates: list[WineProfile] = []
         for wine in self._wines:
             if wine.price_eur > request.max_budget_eur:
                 continue
