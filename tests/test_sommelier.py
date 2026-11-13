@@ -3,7 +3,6 @@
 import pytest
 
 from app.schemas import (
-    Dish,
     DishPairingRequest,
     SensoryRadar,
     WineProfile,
@@ -92,9 +91,7 @@ def test_get_regions_summary(engine: SommelierEngine) -> None:
 
 def test_euclidean_distance_identical_profiles(engine: SommelierEngine) -> None:
     """Verify identical sensory profiles produce 0 distance and 100% compatibility."""
-    profile = SensoryRadar(
-        body=5.0, acidity=5.0, tannins=5.0, fruit=5.0, oak=5.0
-    )
+    profile = SensoryRadar(body=5.0, acidity=5.0, tannins=5.0, fruit=5.0, oak=5.0)
     dist = engine.compute_distance(profile, profile)
     score = engine.compute_compatibility_score(profile, profile)
 
@@ -105,9 +102,7 @@ def test_euclidean_distance_identical_profiles(engine: SommelierEngine) -> None:
 def test_euclidean_distance_maximum_divergence(engine: SommelierEngine) -> None:
     """Verify maximum opposite sensory profiles produce maximum distance and 0% score."""
     p1 = SensoryRadar(body=1.0, acidity=1.0, tannins=1.0, fruit=1.0, oak=1.0)
-    p2 = SensoryRadar(
-        body=10.0, acidity=10.0, tannins=10.0, fruit=10.0, oak=10.0
-    )
+    p2 = SensoryRadar(body=10.0, acidity=10.0, tannins=10.0, fruit=10.0, oak=10.0)
 
     dist = engine.compute_distance(p1, p2)
     score = engine.compute_compatibility_score(p1, p2)
@@ -127,7 +122,10 @@ def test_recommend_pairing_chuleton_success(engine: SommelierEngine) -> None:
     assert recommendation.compatibility_score >= 80.0
     assert recommendation.primary_wine.wine_type == WineType.RED
     assert recommendation.primary_wine.price_eur <= 60.0
-    assert "afinidades" in recommendation.sommelier_explanation.lower() or "afinidad" in recommendation.sommelier_explanation.lower()
+    assert (
+        "afinidades" in recommendation.sommelier_explanation.lower()
+        or "afinidad" in recommendation.sommelier_explanation.lower()
+    )
     assert len(recommendation.alternative_wines) <= 2
 
 
@@ -179,9 +177,7 @@ def test_recommend_pairing_relaxes_type_filter_when_none_match(
         serving_temp_c=10.0,
         decant_minutes=0,
         glass_type="Tulipa",
-        sensory=SensoryRadar(
-            body=4.0, acidity=7.0, tannins=1.0, fruit=7.0, oak=1.0
-        ),
+        sensory=SensoryRadar(body=4.0, acidity=7.0, tannins=1.0, fruit=7.0, oak=1.0),
         tasting_notes="Fresh",
     )
     expensive_red = WineProfile(
@@ -195,9 +191,7 @@ def test_recommend_pairing_relaxes_type_filter_when_none_match(
         serving_temp_c=16.0,
         decant_minutes=15,
         glass_type="Burdeos",
-        sensory=SensoryRadar(
-            body=8.0, acidity=6.0, tannins=8.0, fruit=8.0, oak=7.0
-        ),
+        sensory=SensoryRadar(body=8.0, acidity=6.0, tannins=8.0, fruit=8.0, oak=7.0),
         tasting_notes="Rich",
     )
     custom_engine = SommelierEngine(

@@ -25,9 +25,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=17.0,
         decant_minutes=30,
         glass_type="Burdeos",
-        sensory=SensoryRadar(
-            body=7.8, acidity=7.0, tannins=7.5, fruit=8.0, oak=8.5
-        ),
+        sensory=SensoryRadar(body=7.8, acidity=7.0, tannins=7.5, fruit=8.0, oak=8.5),
         tasting_notes="Clásico coupage riojano (Tempranillo y Garnacha). Aromas a cedro, tabaco dulce, vainilla y cereza madura con taninos sedosos.",
     ),
     WineProfile(
@@ -41,9 +39,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=16.0,
         decant_minutes=30,
         glass_type="Burdeos",
-        sensory=SensoryRadar(
-            body=8.8, acidity=6.5, tannins=8.5, fruit=8.5, oak=8.0
-        ),
+        sensory=SensoryRadar(body=8.8, acidity=6.5, tannins=8.5, fruit=8.5, oak=8.0),
         tasting_notes="Potente y envolvente. Fruta negra madura, especias tostadas y estructura tánica cremosa que llena el paladar.",
     ),
     WineProfile(
@@ -57,9 +53,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=11.0,
         decant_minutes=0,
         glass_type="Borgoña",
-        sensory=SensoryRadar(
-            body=6.5, acidity=8.8, tannins=1.5, fruit=8.2, oak=2.0
-        ),
+        sensory=SensoryRadar(body=6.5, acidity=8.8, tannins=1.5, fruit=8.2, oak=2.0),
         tasting_notes="Albariño mítico de guarda criado sobre lías en acero durante más de 30 meses. Alta mineralidad atlántica, hidrocarburos y cítricos nobles.",
     ),
     WineProfile(
@@ -73,9 +67,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=12.0,
         decant_minutes=15,
         glass_type="Borgoña",
-        sensory=SensoryRadar(
-            body=7.2, acidity=7.5, tannins=2.0, fruit=7.6, oak=6.5
-        ),
+        sensory=SensoryRadar(body=7.2, acidity=7.5, tannins=2.0, fruit=7.6, oak=6.5),
         tasting_notes="Pionero Verdejo fermentado y criado en barrica de roble francés. Textura untuosa, flor blanca, hinojo silvestre y humo elegante.",
     ),
     WineProfile(
@@ -89,9 +81,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=16.0,
         decant_minutes=45,
         glass_type="Burdeos",
-        sensory=SensoryRadar(
-            body=8.5, acidity=7.5, tannins=8.0, fruit=8.2, oak=7.5
-        ),
+        sensory=SensoryRadar(body=8.5, acidity=7.5, tannins=8.0, fruit=8.2, oak=7.5),
         tasting_notes="Suelo escarpado de pizarra licorella. Garnacha y Cariñena concentradas, grafito, hierbas mediterráneas y fruta roja licorosa.",
     ),
     WineProfile(
@@ -105,9 +95,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=8.0,
         decant_minutes=0,
         glass_type="Copita",
-        sensory=SensoryRadar(
-            body=5.2, acidity=8.2, tannins=1.2, fruit=5.5, oak=3.5
-        ),
+        sensory=SensoryRadar(body=5.2, acidity=8.2, tannins=1.2, fruit=5.5, oak=3.5),
         tasting_notes="Crianza biológica bajo velo de flor sin filtrar ni clarificar. Aromas punzantes a levadura, almendra cruda y una salinidad yodada arrolladora.",
     ),
     WineProfile(
@@ -121,9 +109,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=17.0,
         decant_minutes=45,
         glass_type="Burdeos",
-        sensory=SensoryRadar(
-            body=9.5, acidity=6.0, tannins=9.0, fruit=8.5, oak=8.5
-        ),
+        sensory=SensoryRadar(body=9.5, acidity=6.0, tannins=9.0, fruit=8.5, oak=8.5),
         tasting_notes="Tinta de Toro de viñas viejas prefiloxéricas. Opulencia tánica, regaliz negro, maderas balsámicas y una concentración colosal.",
     ),
     WineProfile(
@@ -137,9 +123,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=15.0,
         decant_minutes=15,
         glass_type="Borgoña",
-        sensory=SensoryRadar(
-            body=6.5, acidity=7.5, tannins=5.8, fruit=8.5, oak=5.2
-        ),
+        sensory=SensoryRadar(body=6.5, acidity=7.5, tannins=5.8, fruit=8.5, oak=5.2),
         tasting_notes="Mencía atlántica de ladera. Perfil fragante a violetas, frambuesa ácida y frescura mineral con trago directo y seductor.",
     ),
     WineProfile(
@@ -153,9 +137,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=8.0,
         decant_minutes=0,
         glass_type="Tulipa",
-        sensory=SensoryRadar(
-            body=6.0, acidity=8.6, tannins=1.4, fruit=7.2, oak=4.0
-        ),
+        sensory=SensoryRadar(body=6.0, acidity=8.6, tannins=1.4, fruit=7.2, oak=4.0),
         tasting_notes="Crianza en rima superior a 50 meses. Burbuja fundida, notas de brioche, manzana asada y una frescura vibrante que limpia el paladar.",
     ),
     WineProfile(
@@ -169,9 +151,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=16.0,
         decant_minutes=0,
         glass_type="Burdeos",
-        sensory=SensoryRadar(
-            body=6.2, acidity=6.5, tannins=6.0, fruit=7.5, oak=6.5
-        ),
+        sensory=SensoryRadar(body=6.2, acidity=6.5, tannins=6.0, fruit=7.5, oak=6.5),
         tasting_notes="Tempranillo accesible y versátil con crianza equilibrada en barrica de roble americano. Notas de vainilla, mora y coco.",
     ),
     WineProfile(
@@ -185,9 +165,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=10.0,
         decant_minutes=0,
         glass_type="Tulipa",
-        sensory=SensoryRadar(
-            body=5.0, acidity=8.2, tannins=1.0, fruit=8.0, oak=1.0
-        ),
+        sensory=SensoryRadar(body=5.0, acidity=8.2, tannins=1.0, fruit=8.0, oak=1.0),
         tasting_notes="Joven y fresco. Flores blancas, manzana verde, pomelo y salinidad marina limpia y refrescante.",
     ),
     WineProfile(
@@ -201,9 +179,7 @@ CURATED_WINES: list[WineProfile] = [
         serving_temp_c=13.0,
         decant_minutes=0,
         glass_type="Copita",
-        sensory=SensoryRadar(
-            body=7.8, acidity=7.0, tannins=3.0, fruit=5.0, oak=8.2
-        ),
+        sensory=SensoryRadar(body=7.8, acidity=7.0, tannins=3.0, fruit=5.0, oak=8.2),
         tasting_notes="Envejecimiento oxidativo en solera centenaria. Nuez tostada, ebanistería noble, cuero y humo con un final seco interminable.",
     ),
 ]
@@ -281,8 +257,8 @@ class SommelierEngine:
 
     def __init__(
         self,
-        wines: Optional[list[WineProfile]] = None,
-        dishes: Optional[list[Dish]] = None,
+        wines: list[WineProfile] | None = None,
+        dishes: list[Dish] | None = None,
     ) -> None:
         """Initialize engine with curated catalogs or custom datasets."""
         self._wines: list[WineProfile] = list(wines or CURATED_WINES)
@@ -299,10 +275,7 @@ class SommelierEngine:
         """Filter wines by designation of origin, wine type, or maximum budget."""
         results: list[WineProfile] = []
         for wine in self._wines:
-            if (
-                appellation
-                and appellation.lower() not in wine.appellation.lower()
-            ):
+            if appellation and appellation.lower() not in wine.appellation.lower():
                 continue
             if wine_type and wine.wine_type != wine_type:
                 continue
@@ -343,13 +316,9 @@ class SommelierEngine:
 
         summaries: list[RegionSummary] = []
         for app, count in counts.items():
-            climate = climate_map.get(
-                app, "Mediterráneo continental característico"
-            )
+            climate = climate_map.get(app, "Mediterráneo continental característico")
             summaries.append(
-                RegionSummary(
-                    appellation=app, wine_count=count, climate_type=climate
-                )
+                RegionSummary(appellation=app, wine_count=count, climate_type=climate)
             )
         return sorted(summaries, key=lambda r: r.wine_count, reverse=True)
 
@@ -375,44 +344,35 @@ class SommelierEngine:
         score = max(0.0, min(100.0, 100.0 * (1.0 - ratio)))
         return round(score, 1)
 
-    def recommend_pairing(
-        self, request: DishPairingRequest
-    ) -> PairingRecommendation:
+    def _select_candidates(self, request: DishPairingRequest) -> list[WineProfile]:
+        """Select candidate wines within budget, relaxing type filter if empty."""
+        within_budget = [
+            w for w in self._wines if w.price_eur <= request.max_budget_eur
+        ]
+        if request.preferred_type:
+            typed = [w for w in within_budget if w.wine_type == request.preferred_type]
+            if typed:
+                return typed
+        if not within_budget:
+            raise ValueError(
+                f"No wines found in cellar catalog within budget of "
+                f"{request.max_budget_eur:.2f} €."
+            )
+        return within_budget
+
+    def recommend_pairing(self, request: DishPairingRequest) -> PairingRecommendation:
         """Calculate optimal wine pairing using multi-vector sensory distance."""
         dish = self.get_dish_by_id(request.dish_id)
         if not dish:
             raise ValueError(f"Dish with id '{request.dish_id}' not found.")
 
-        # Candidate pool matching budget and optional preferred wine type
-        candidates: list[WineProfile] = []
-        for wine in self._wines:
-            if wine.price_eur > request.max_budget_eur:
-                continue
-            if (
-                request.preferred_type
-                and wine.wine_type != request.preferred_type
-            ):
-                continue
-            candidates.append(wine)
-
-        # Fallback: If no wines fit budget with the preferred type, relax type filter
-        if not candidates and request.preferred_type:
-            candidates = [
-                w for w in self._wines if w.price_eur <= request.max_budget_eur
-            ]
-
-        if not candidates:
-            raise ValueError(
-                f"No wines found in cellar catalog within budget of {request.max_budget_eur:.2f} €."
-            )
+        candidates = self._select_candidates(request)
 
         # Rank candidates by compatibility score descending, then by price ascending
         scored_wines = [
             (
                 wine,
-                self.compute_compatibility_score(
-                    dish.target_sensory, wine.sensory
-                ),
+                self.compute_compatibility_score(dish.target_sensory, wine.sensory),
             )
             for wine in candidates
         ]
@@ -432,9 +392,7 @@ class SommelierEngine:
             sommelier_explanation=explanation,
         )
 
-    def _generate_explanation(
-        self, dish: Dish, wine: WineProfile, score: float
-    ) -> str:
+    def _generate_explanation(self, dish: Dish, wine: WineProfile, score: float) -> str:
         """Generate enological rationale for harmony between dish and wine."""
         return (
             f"Maridaje de alta afinidad ({score:.1f}% de afinidad sensorial). "

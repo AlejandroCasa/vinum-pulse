@@ -15,9 +15,11 @@ dependencies = [
 dev = [
     "bandit[toml]>=1.8.0",
     "black>=24.10.0",
+    "commitizen>=4.19.3",
     "isort>=5.13.2",
     "mypy>=1.14.0",
     "pip-audit>=2.7.3",
+    "pre-commit>=4.7.0",
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
     "radon>=6.0.1",
@@ -68,6 +70,10 @@ select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "app/ui.py" = ["E501"]
+"app/sommelier.py" = ["E501"]
+"app/schemas.py" = ["E501"]
+"tests/test_sommelier.py" = ["E501"]
+"app/main.py" = ["B008"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -76,3 +82,9 @@ ignore_missing_imports = true
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
+
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_provider = "pep621"

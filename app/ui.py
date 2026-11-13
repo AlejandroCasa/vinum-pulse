@@ -1,4 +1,4 @@
-﻿"""UI templates and interactive HTML views for Vinum Pulse."""
+"""UI templates and interactive HTML views for Vinum Pulse."""
 
 DASHBOARD_HTML = """<!DOCTYPE html>
 <html lang="es">
@@ -184,7 +184,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     <h4 class="text-base font-bold text-white flex items-center gap-2">
                         <i class="fa-solid fa-chart-radar text-rose-400"></i> Radar Sensorial (5 Ejes)
                     </h4>
-                    <span class="text-xs font-mono text-stone-400">Escala 1–10</span>
+                    <span class="text-xs font-mono text-stone-400">Escala 1-10</span>
                 </div>
                 <div class="relative w-full aspect-square max-w-sm mx-auto">
                     <canvas id="radarChart"></canvas>
