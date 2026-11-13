@@ -6,207 +6,223 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vinum Pulse — Radar de Cata y Maridaje Sensorial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Instrument Serif"', 'Georgia', 'serif'],
+                        sans: ['"Work Sans"', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        cream: '#F7F2E8',
+                        butter: '#EFE7D6',
+                        espresso: '#231B16',
+                        walnut: '#6A5A4F',
+                        bordeaux: '#6B1D28',
+                        brass: '#9C6F38',
+                        sage: '#4F5D47',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        .wine-gradient { background: linear-gradient(135deg, #4A0E17 0%, #1A0508 100%); }
-        .card-active { border-color: #E11D48; background-color: #2D0B12; }
+        :root {
+            color-scheme: light;
+            --ease-bistro: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        ::selection { background-color: #6B1D28; color: #F7F2E8; }
+        body {
+            background-color: #F7F2E8;
+            color: #231B16;
+        }
+        ::-webkit-scrollbar { width: 7px; }
+        ::-webkit-scrollbar-track { background: #EFE7D6; }
+        ::-webkit-scrollbar-thumb { background: rgba(107, 29, 40, 0.25); border-radius: 4px; }
+
+        .menu-frame {
+            border-top: 1px solid rgba(35, 27, 22, 0.16);
+            border-bottom: 1px solid rgba(35, 27, 22, 0.16);
+        }
+        .dish-row {
+            transition: background-color 200ms var(--ease-bistro), padding-left 200ms var(--ease-bistro);
+        }
+        .dish-row:hover {
+            background-color: rgba(239, 231, 214, 0.55);
+        }
+        .dish-row.is-active {
+            background-color: #EFE7D6;
+            padding-left: 0.75rem;
+        }
+        .style-tab {
+            transition: color 180ms var(--ease-bistro), border-color 180ms var(--ease-bistro);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(35, 27, 22, 0.16);
+            height: 2px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 999px;
+            background: #6B1D28;
+            border: 2px solid #F7F2E8;
+            box-shadow: 0 1px 3px rgba(35, 27, 22, 0.25);
+            cursor: pointer;
+        }
+        :focus-visible {
+            outline: 2px solid #6B1D28;
+            outline-offset: 3px;
+        }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
     </style>
 </head>
-<body class="bg-stone-950 text-stone-100 min-h-screen font-sans antialiased">
-    <!-- Navbar -->
-    <header class="border-b border-stone-800 bg-stone-900/80 backdrop-blur sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl wine-gradient border border-rose-500/30 flex items-center justify-center text-rose-400 text-xl font-bold shadow-lg shadow-rose-950/50">
-                    <i class="fa-solid fa-wine-glass"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                        Vinum Pulse <span class="text-xs px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">Sommelier Radar v0.1</span>
-                    </h1>
-                    <p class="text-xs text-stone-400">Inteligencia Enológica & Maridaje Sensorial Multivectorial</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 text-xs">
-                <span class="px-3 py-1 rounded-full bg-stone-800 border border-stone-700 text-stone-300 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Motor Activo
-                </span>
-                <span class="px-3 py-1 rounded-full bg-stone-800 border border-stone-700 text-stone-300">
-                    <i class="fa-solid fa-layer-group text-rose-400 mr-1"></i> 9 D.O. Españolas
-                </span>
-            </div>
+<body class="min-h-screen font-sans antialiased text-espresso">
+    <!-- Parisian Bistro Masthead -->
+    <header class="max-w-5xl mx-auto px-6 sm:px-10 pt-10 pb-6 text-center space-y-2">
+        <div class="flex items-center justify-center gap-3 text-bordeaux">
+            <span class="h-px w-8 bg-espresso/20"></span>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 22h8M12 15v7M6 3h12l-1.2 6.5a5 5 0 0 1-9.6 0L6 3Z"/>
+            </svg>
+            <span class="h-px w-8 bg-espresso/20"></span>
         </div>
+        <h1 class="font-serif text-4xl sm:text-5xl tracking-tight text-espresso">Vinum Pulse</h1>
+        <p class="font-serif italic text-lg text-walnut">
+            Cave &amp; Table — Maridaje de mesa, sin jerga enológica
+        </p>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        <!-- Hero Section -->
-        <section class="text-center max-w-3xl mx-auto space-y-3">
-            <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                Maridaje Perfecto sin Jerga Enológica
-            </h2>
-            <p class="text-stone-400 text-sm sm:text-base">
-                Selecciona tu plato gastronómico, ajusta tu presupuesto y visualiza cómo el perfil tánico, ácido y frutal del vino abraza la estructura del plato en un radar sensorial interactivo.
-            </p>
-        </section>
+    <main class="max-w-5xl mx-auto px-6 sm:px-10 pb-16 space-y-10">
+        <!-- Inline Error Banner -->
+        <div id="error-banner" role="alert" class="hidden border border-bordeaux/30 bg-butter px-4 py-3 text-bordeaux text-sm flex items-center justify-between gap-4">
+            <span id="error-message">No hay vinos disponibles con estos filtros.</span>
+            <button type="button" onclick="document.getElementById('error-banner').classList.add('hidden')" class="text-xs font-mono underline underline-offset-4">Cerrar</button>
+        </div>
 
-        <!-- Selector de Platos -->
-        <section class="space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-stone-200 flex items-center gap-2">
-                    <i class="fa-solid fa-utensils text-rose-400"></i> 1. Selecciona tu Plato Gastronómico
-                </h3>
-                <span class="text-xs text-stone-400" id="dish-counter">Cargando platos...</span>
-            </div>
-            <div id="dish-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Platos inyectados vía JS -->
-            </div>
-        </section>
+        <!-- Menu Sheet Layout -->
+        <div class="menu-frame py-10 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+            <!-- Left: La Carte & Cellar Preferences (5 cols) -->
+            <aside class="lg:col-span-5 space-y-10">
+                <section class="space-y-4">
+                    <div class="flex justify-between items-baseline border-b border-espresso/15 pb-2.5">
+                        <h2 class="font-serif text-2xl text-espresso">La Carte</h2>
+                        <span id="dish-counter" class="text-xs font-serif italic text-walnut">Cargando carta...</span>
+                    </div>
+                    <div id="dish-grid" class="divide-y divide-espresso/10">
+                        <!-- Dishes rendered via JS -->
+                    </div>
+                </section>
 
-        <!-- Filtros y Presupuesto -->
-        <section class="bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <h3 class="text-lg font-semibold text-stone-200 flex items-center gap-2">
-                <i class="fa-solid fa-sliders text-rose-400"></i> 2. Ajustes de Maridaje & Presupuesto
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <!-- Presupuesto -->
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <label for="budget-slider" class="text-sm font-medium text-stone-300">Presupuesto Máximo por Botella</label>
-                        <span id="budget-value" class="text-xl font-bold text-rose-400">50 €</span>
-                    </div>
-                    <input id="budget-slider" type="range" min="15" max="80" step="5" value="50"
-                           class="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                    <div class="flex justify-between text-xs text-stone-500">
-                        <span>15 € (Accesible)</span>
-                        <span>45 € (Premium)</span>
-                        <span>80 € (Colección)</span>
-                    </div>
-                </div>
+                <section class="space-y-6 pt-2">
+                    <h2 class="font-serif text-2xl text-espresso border-b border-espresso/15 pb-2.5">En Bodega</h2>
 
-                <!-- Tipo de Vino -->
-                <div class="space-y-3">
-                    <label class="text-sm font-medium text-stone-300">Preferencia Enológica</label>
-                    <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="type-selector">
-                        <button type="button" data-type="" class="type-btn px-3 py-2 rounded-xl text-xs font-semibold border border-rose-500 bg-rose-500/20 text-rose-300 text-center transition">Todos</button>
-                        <button type="button" data-type="Red" class="type-btn px-3 py-2 rounded-xl text-xs font-semibold border border-stone-700 bg-stone-800 text-stone-300 text-center hover:border-stone-600 transition">Tinto</button>
-                        <button type="button" data-type="White" class="type-btn px-3 py-2 rounded-xl text-xs font-semibold border border-stone-700 bg-stone-800 text-stone-300 text-center hover:border-stone-600 transition">Blanco</button>
-                        <button type="button" data-type="Sparkling" class="type-btn px-3 py-2 rounded-xl text-xs font-semibold border border-stone-700 bg-stone-800 text-stone-300 text-center hover:border-stone-600 transition">Espumoso</button>
-                        <button type="button" data-type="Fortified" class="type-btn px-3 py-2 rounded-xl text-xs font-semibold border border-stone-700 bg-stone-800 text-stone-300 text-center hover:border-stone-600 transition">Generoso</button>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-baseline">
+                            <label for="budget-slider" class="text-sm text-walnut">Presupuesto por botella</label>
+                            <span id="budget-value" class="font-mono text-base text-bordeaux tabular-nums">50 €</span>
+                        </div>
+                        <input id="budget-slider" type="range" min="15" max="80" step="5" value="50" class="w-full cursor-pointer">
+                        <div class="flex justify-between text-[11px] font-mono text-walnut/80">
+                            <span>15 €</span>
+                            <span>45 €</span>
+                            <span>80 €</span>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Resultados: Vino Recomendado + Gráfico Radar -->
-        <section id="results-section" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <!-- Ficha Enológica Recomendada (7 cols) -->
-            <div class="lg:col-span-7 bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl space-y-6">
-                <div class="flex flex-wrap justify-between items-start gap-4 border-b border-stone-800 pb-4">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span id="res-appellation" class="px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-rose-950 text-rose-400 border border-rose-800">D.O.Ca. Rioja</span>
-                            <span id="res-vintage" class="text-xs text-stone-400 font-mono">Añada 2017</span>
+                    <div class="space-y-2.5">
+                        <span class="block text-sm text-walnut">Estilo</span>
+                        <div class="flex flex-wrap gap-x-5 gap-y-2 border-b border-espresso/10 pb-1" id="type-selector">
+                            <button type="button" data-type="" class="style-tab pb-1.5 text-sm font-medium border-b-2 border-bordeaux text-bordeaux">Todos</button>
+                            <button type="button" data-type="Red" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso">Tinto</button>
+                            <button type="button" data-type="White" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso">Blanco</button>
+                            <button type="button" data-type="Sparkling" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso">Espumoso</button>
+                            <button type="button" data-type="Fortified" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso">Generoso</button>
                         </div>
-                        <h4 id="res-name" class="text-2xl font-bold text-white tracking-tight">Viña Ardanza Reserva</h4>
-                        <p id="res-winery" class="text-sm text-stone-400">La Rioja Alta, S.A.</p>
                     </div>
-                    <div class="text-right">
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-bold text-sm">
-                            <i class="fa-solid fa-circle-check"></i> <span id="res-score">96.5%</span> Afinidad
-                        </div>
-                        <div class="text-xl font-extrabold text-stone-100 mt-2" id="res-price">34.00 €</div>
-                    </div>
-                </div>
+                </section>
+            </aside>
 
-                <!-- Termómetro de Servicio & Cristalería -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-stone-950/60 border border-stone-800/80 rounded-xl p-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-lg">
-                            <i class="fa-solid fa-temperature-half"></i>
+            <!-- Right: Le Choix du Sommelier (7 cols) -->
+            <section id="results-section" class="lg:col-span-7 lg:border-l lg:border-espresso/12 lg:pl-12 space-y-8">
+                <!-- Wine Header -->
+                <div class="flex flex-wrap justify-between items-baseline gap-4 border-b border-espresso/15 pb-6">
+                    <div class="space-y-1">
+                        <div class="text-xs font-mono text-walnut flex items-center gap-2">
+                            <span id="res-appellation" class="text-bordeaux uppercase tracking-wider">D.O.Ca. Rioja</span>
+                            <span aria-hidden="true">·</span>
+                            <span id="res-vintage" class="tabular-nums">Añada 2017</span>
                         </div>
-                        <div>
-                            <div class="text-[11px] text-stone-400 uppercase tracking-wide">Temp. Servicio</div>
-                            <div class="text-sm font-bold text-white" id="res-temp">17 °C</div>
-                        </div>
+                        <h3 id="res-name" class="font-serif text-3xl sm:text-4xl text-espresso leading-tight">Viña Ardanza Reserva</h3>
+                        <p id="res-winery" class="font-serif italic text-lg text-walnut">La Rioja Alta, S.A.</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
-                            <i class="fa-solid fa-hourglass-half"></i>
-                        </div>
-                        <div>
-                            <div class="text-[11px] text-stone-400 uppercase tracking-wide">Decantación</div>
-                            <div class="text-sm font-bold text-white" id="res-decant">30 min</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-lg">
-                            <i class="fa-solid fa-wine-glass-empty"></i>
-                        </div>
-                        <div>
-                            <div class="text-[11px] text-stone-400 uppercase tracking-wide">Copa Óptima</div>
-                            <div class="text-sm font-bold text-white" id="res-glass">Burdeos</div>
+                    <div class="text-right space-y-1">
+                        <div id="res-price" class="font-mono text-2xl text-espresso tabular-nums">34.00 €</div>
+                        <div class="text-xs font-mono text-sage tabular-nums">
+                            <span id="res-score">96.5%</span> afinidad
                         </div>
                     </div>
                 </div>
 
-                <!-- Explicación del Sommelier -->
-                <div class="space-y-2">
-                    <div class="text-xs uppercase tracking-wider text-rose-400 font-bold flex items-center gap-1.5">
-                        <i class="fa-solid fa-comment-dots"></i> Veredicto del Sommelier
+                <!-- Quiet Service Ritual Line -->
+                <div class="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-walnut border-b border-espresso/10 pb-5">
+                    <span>Servicio <strong id="res-temp" class="font-medium text-espresso tabular-nums">17 °C</strong></span>
+                    <span>Decantación <strong id="res-decant" class="font-medium text-espresso tabular-nums">30 min</strong></span>
+                    <span>Copa <strong id="res-glass" class="font-medium text-espresso">Burdeos</strong></span>
+                </div>
+
+                <!-- Tasting Quote & Radar -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                    <div class="md:col-span-6 space-y-5">
+                        <p id="res-explanation" class="text-sm text-espresso/90 leading-relaxed">
+                            Cargando análisis sensorial...
+                        </p>
+                        <blockquote class="border-l border-bordeaux/50 pl-4">
+                            <p id="res-notes" class="font-serif italic text-xl text-walnut leading-snug">
+                                Cargando descriptores...
+                            </p>
+                        </blockquote>
                     </div>
-                    <p id="res-explanation" class="text-sm text-stone-300 leading-relaxed bg-stone-950/40 p-4 rounded-xl border border-stone-800/60">
-                        Cargando análisis sensorial...
-                    </p>
+
+                    <div class="md:col-span-6 space-y-2">
+                        <div class="relative w-full aspect-square max-w-[260px] mx-auto">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                        <div class="flex justify-center gap-5 text-[11px] font-mono text-walnut">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-bordeaux"></span> Vino
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-brass"></span> Plato
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Notas de Cata -->
-                <div class="space-y-2">
-                    <div class="text-xs uppercase tracking-wider text-stone-400 font-bold">Notas de Cata</div>
-                    <p id="res-notes" class="text-xs text-stone-400 italic">
-                        Cargando descriptores organolépticos...
-                    </p>
-                </div>
-
-                <!-- Alternativas -->
-                <div class="space-y-3 pt-2 border-t border-stone-800">
-                    <div class="text-xs uppercase tracking-wider text-stone-400 font-bold">Alternativas en Bodega</div>
-                    <div id="res-alternatives" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Cellar Alternatives -->
+                <div class="space-y-3 pt-4 border-t border-espresso/12">
+                    <h4 class="font-serif italic text-lg text-walnut">Otras botellas de la cava</h4>
+                    <div id="res-alternatives" class="divide-y divide-espresso/10">
                         <!-- Alternativas vía JS -->
                     </div>
                 </div>
-            </div>
-
-            <!-- Radar Sensorial de 5 Ejes (5 cols) -->
-            <div class="lg:col-span-5 bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl space-y-4">
-                <div class="flex justify-between items-center border-b border-stone-800 pb-3">
-                    <h4 class="text-base font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-chart-radar text-rose-400"></i> Radar Sensorial (5 Ejes)
-                    </h4>
-                    <span class="text-xs font-mono text-stone-400">Escala 1-10</span>
-                </div>
-                <div class="relative w-full aspect-square max-w-sm mx-auto">
-                    <canvas id="radarChart"></canvas>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-xs pt-2">
-                    <div class="flex items-center gap-2 p-2 rounded-lg bg-stone-950 border border-stone-800">
-                        <span class="w-3 h-3 rounded-full bg-rose-500"></span>
-                        <span class="text-stone-300 font-medium">Vino Recomendado</span>
-                    </div>
-                    <div class="flex items-center gap-2 p-2 rounded-lg bg-stone-950 border border-stone-800">
-                        <span class="w-3 h-3 rounded-full bg-amber-400"></span>
-                        <span class="text-stone-300 font-medium">Demanda del Plato</span>
-                    </div>
-                </div>
-            </div>
-        </section>
+            </section>
+        </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="border-t border-stone-800 mt-16 py-8 text-center text-xs text-stone-500 space-y-2">
-        <p>Vinum Pulse &copy; 2026 — Plataforma de Arquitectura Limpia en FastAPI, Pydantic v2 y Python 3.12</p>
-        <p class="text-stone-600">Gobernanza CTO & Calidad de Código Certificada</p>
+    <footer class="max-w-5xl mx-auto px-6 sm:px-10 pb-10 text-center text-xs font-serif italic text-walnut">
+        Vinum Pulse · Radar de Cata y Maridaje Sensorial
     </footer>
 
     <script>
@@ -214,15 +230,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         let selectedDishId = "chuleton-brasa";
         let preferredType = null;
         let radarChartInstance = null;
-
-        const dishIcons = {
-            "chuleton-brasa": "fa-drumstick-bite",
-            "pulpo-feira": "fa-shrimp",
-            "arroz-bogavante": "fa-bowl-rice",
-            "jamon-bellota": "fa-bacon",
-            "queso-manchego": "fa-cheese",
-            "cochinillo-asado": "fa-fire"
-        };
 
         async function init() {
             try {
@@ -232,29 +239,38 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 setupEventListeners();
                 fetchRecommendation();
             } catch (err) {
+                showError("No se pudo cargar la carta de platos.");
                 console.error("Error al inicializar:", err);
             }
         }
 
+        function showError(msg) {
+            const banner = document.getElementById("error-banner");
+            document.getElementById("error-message").textContent = msg;
+            banner.classList.remove("hidden");
+        }
+
+        function hideError() {
+            document.getElementById("error-banner").classList.add("hidden");
+        }
+
         function renderDishes() {
             const grid = document.getElementById("dish-grid");
-            document.getElementById("dish-counter").textContent = `${allDishes.length} platos disponibles`;
+            document.getElementById("dish-counter").textContent = `${allDishes.length} platos`;
             grid.innerHTML = allDishes.map(dish => {
                 const isActive = dish.id === selectedDishId;
-                const icon = dishIcons[dish.id] || "fa-utensils";
                 return `
-                    <div data-dish-id="${dish.id}" class="dish-card cursor-pointer p-4 rounded-xl border transition-all ${isActive ? 'card-active border-rose-500 shadow-lg shadow-rose-950/40' : 'border-stone-800 bg-stone-900/60 hover:border-stone-700'}">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 font-medium">${dish.category}</span>
-                            <i class="fa-solid ${icon} text-rose-400 text-lg"></i>
+                    <button type="button" data-dish-id="${dish.id}" class="dish-row w-full text-left py-3 pr-2 rounded-sm ${isActive ? 'is-active' : ''}">
+                        <div class="flex items-baseline justify-between gap-2">
+                            <span class="font-serif text-xl text-espresso ${isActive ? 'text-bordeaux' : ''}">${dish.name}</span>
+                            <span class="text-[11px] font-mono text-walnut shrink-0">${dish.category}</span>
                         </div>
-                        <h4 class="text-sm font-bold text-white mb-1">${dish.name}</h4>
-                        <p class="text-xs text-stone-400 line-clamp-2">${dish.description}</p>
-                    </div>
+                        <p class="text-xs text-walnut line-clamp-1 mt-0.5">${dish.description}</p>
+                    </button>
                 `;
             }).join("");
 
-            document.querySelectorAll(".dish-card").forEach(el => {
+            document.querySelectorAll(".dish-row").forEach(el => {
                 el.addEventListener("click", () => {
                     selectedDishId = el.getAttribute("data-dish-id");
                     renderDishes();
@@ -273,14 +289,17 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 fetchRecommendation();
             });
 
-            document.querySelectorAll(".type-btn").forEach(btn => {
+            const activeClasses = ["border-bordeaux", "text-bordeaux", "font-medium"];
+            const idleClasses = ["border-transparent", "text-walnut"];
+
+            document.querySelectorAll(".style-tab").forEach(btn => {
                 btn.addEventListener("click", () => {
-                    document.querySelectorAll(".type-btn").forEach(b => {
-                        b.classList.remove("border-rose-500", "bg-rose-500/20", "text-rose-300");
-                        b.classList.add("border-stone-700", "bg-stone-800", "text-stone-300");
+                    document.querySelectorAll(".style-tab").forEach(b => {
+                        b.classList.remove(...activeClasses);
+                        b.classList.add(...idleClasses);
                     });
-                    btn.classList.add("border-rose-500", "bg-rose-500/20", "text-rose-300");
-                    btn.classList.remove("border-stone-700", "bg-stone-800", "text-stone-300");
+                    btn.classList.add(...activeClasses);
+                    btn.classList.remove(...idleClasses);
                     preferredType = btn.getAttribute("data-type") || null;
                     fetchRecommendation();
                 });
@@ -288,6 +307,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         }
 
         async function fetchRecommendation() {
+            hideError();
             const budget = parseFloat(document.getElementById("budget-slider").value);
             const payload = {
                 dish_id: selectedDishId,
@@ -303,12 +323,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 });
                 if (!res.ok) {
                     const err = await res.json();
-                    alert(err.detail || "Error en la recomendación");
+                    showError(err.detail || "No hay vinos disponibles para esta selección.");
                     return;
                 }
                 const data = await res.json();
                 updateUI(data);
             } catch (err) {
+                showError("Error de conexión con el motor de maridaje.");
                 console.error("Error fetching recommendation:", err);
             }
         }
@@ -322,25 +343,24 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             document.getElementById("res-price").textContent = `${wine.price_eur.toFixed(2)} €`;
             document.getElementById("res-score").textContent = `${rec.compatibility_score.toFixed(1)}%`;
             document.getElementById("res-temp").textContent = `${wine.serving_temp_c.toFixed(0)} °C`;
-            document.getElementById("res-decant").textContent = wine.decant_minutes > 0 ? `${wine.decant_minutes} min` : "No requerida";
+            document.getElementById("res-decant").textContent = wine.decant_minutes > 0 ? `${wine.decant_minutes} min` : "Directo";
             document.getElementById("res-glass").textContent = wine.glass_type;
             document.getElementById("res-explanation").textContent = rec.sommelier_explanation;
-            document.getElementById("res-notes").textContent = `"${wine.tasting_notes}"`;
+            document.getElementById("res-notes").textContent = `«${wine.tasting_notes}»`;
 
-            // Alternativas
             const altGrid = document.getElementById("res-alternatives");
             if (rec.alternative_wines && rec.alternative_wines.length > 0) {
                 altGrid.innerHTML = rec.alternative_wines.map(alt => `
-                    <div class="p-3 rounded-xl bg-stone-950/80 border border-stone-800 flex justify-between items-center text-xs">
+                    <div class="py-2.5 flex justify-between items-baseline gap-4 text-sm">
                         <div>
-                            <div class="font-bold text-white">${alt.name}</div>
-                            <div class="text-stone-400 text-[11px]">${alt.appellation} (${alt.wine_type})</div>
+                            <span class="font-serif text-lg text-espresso">${alt.name}</span>
+                            <span class="text-xs text-walnut ml-2">${alt.appellation}</span>
                         </div>
-                        <div class="text-stone-300 font-mono font-bold">${alt.price_eur.toFixed(2)} €</div>
+                        <span class="font-mono text-xs text-espresso tabular-nums shrink-0">${alt.price_eur.toFixed(2)} €</span>
                     </div>
                 `).join("");
             } else {
-                altGrid.innerHTML = `<div class="col-span-2 text-xs text-stone-500 italic">No hay alternativas adicionales bajo este presupuesto.</div>`;
+                altGrid.innerHTML = `<p class="py-2 text-xs text-walnut italic">Sin alternativas adicionales bajo este presupuesto.</p>`;
             }
 
             renderRadarChart(rec.target_sensory, wine.sensory);
@@ -364,21 +384,21 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                         {
                             label: 'Vino Recomendado',
                             data: wineData,
-                            backgroundColor: 'rgba(244, 63, 94, 0.25)',
-                            borderColor: '#F43F5E',
-                            pointBackgroundColor: '#F43F5E',
-                            pointBorderColor: '#fff',
+                            backgroundColor: 'rgba(107, 29, 40, 0.14)',
+                            borderColor: '#6B1D28',
+                            pointBackgroundColor: '#6B1D28',
+                            pointBorderColor: '#F7F2E8',
                             borderWidth: 2
                         },
                         {
                             label: 'Demanda del Plato',
                             data: targetData,
-                            backgroundColor: 'rgba(251, 191, 36, 0.2)',
-                            borderColor: '#FBBF24',
-                            pointBackgroundColor: '#FBBF24',
-                            pointBorderColor: '#fff',
-                            borderWidth: 2,
-                            borderDash: [4, 4]
+                            backgroundColor: 'rgba(156, 111, 56, 0.12)',
+                            borderColor: '#9C6F38',
+                            pointBackgroundColor: '#9C6F38',
+                            pointBorderColor: '#F7F2E8',
+                            borderWidth: 1.5,
+                            borderDash: [4, 3]
                         }
                     ]
                 },
@@ -387,11 +407,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     maintainAspectRatio: true,
                     scales: {
                         r: {
-                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            angleLines: { color: 'rgba(35, 27, 22, 0.1)' },
+                            grid: { color: 'rgba(35, 27, 22, 0.1)' },
                             pointLabels: {
-                                color: '#D6D3D1',
-                                font: { size: 11, weight: 'bold' }
+                                color: '#6A5A4F',
+                                font: { family: '"Work Sans", sans-serif', size: 11, weight: '500' }
                             },
                             ticks: {
                                 display: false,
