@@ -25,7 +25,7 @@ def test_catalog_initialization(engine: SommelierEngine) -> None:
     assert len(wines) == len(CURATED_WINES)
     assert len(dishes) == len(CURATED_DISHES)
     assert len(wines) >= 10
-    assert len(dishes) >= 6
+    assert len(dishes) == 12
 
 
 def test_get_wine_by_id(engine: SommelierEngine) -> None:

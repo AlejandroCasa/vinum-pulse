@@ -47,7 +47,7 @@ def test_list_dishes_endpoint() -> None:
     response = client.get("/api/v1/dishes")
     assert response.status_code == 200
     dishes = response.json()
-    assert len(dishes) >= 6
+    assert len(dishes) == 12
     sample = dishes[0]
     assert "id" in sample
     assert "target_sensory" in sample

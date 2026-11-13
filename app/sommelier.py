@@ -252,6 +252,66 @@ CURATED_DISHES: list[Dish] = [
         ),
         suggested_wine_type=WineType.RED,
     ),
+    Dish(
+        id="rodaballo-brasa",
+        name="Rodaballo salvaje a la brasa con refrito de ajos",
+        category="Pescados y Mariscos",
+        description="Pescado plano atlántico asado entero a la parrilla con su piel gelatinosa, emulsión de colágeno y vinagre de sidra.",
+        target_sensory=SensoryRadar(
+            body=6.8, acidity=8.0, tannins=1.8, fruit=7.5, oak=5.5
+        ),
+        suggested_wine_type=WineType.WHITE,
+    ),
+    Dish(
+        id="paella-valenciana",
+        name="Paella valenciana tradicional a leña de naranjo",
+        category="Arroces",
+        description="Arroz seco en paella con pollo de corral, conejo, garrofó, judía ferradura y socarrat aromático de romero.",
+        target_sensory=SensoryRadar(
+            body=6.0, acidity=7.5, tannins=3.0, fruit=7.8, oak=2.5
+        ),
+        suggested_wine_type=WineType.ROSE,
+    ),
+    Dish(
+        id="carrilleras-ibericas",
+        name="Carrilleras ibéricas estofadas al vino tinto",
+        category="Carnes",
+        description="Cocción lenta de carrillera de cerdo ibérico en reducción de vino, chalotas y cacao amargo con textura melosa.",
+        target_sensory=SensoryRadar(
+            body=8.5, acidity=7.0, tannins=7.8, fruit=8.0, oak=7.5
+        ),
+        suggested_wine_type=WineType.RED,
+    ),
+    Dish(
+        id="rabo-toro",
+        name="Rabo de toro estofado a la cordobesa",
+        category="Carnes",
+        description="Guiso tradicional de larga cocción con vino oloroso, verduras pochadas y salsa gelatinosa de gran intensidad.",
+        target_sensory=SensoryRadar(
+            body=9.2, acidity=6.8, tannins=8.2, fruit=7.5, oak=8.5
+        ),
+        suggested_wine_type=WineType.RED,
+    ),
+    Dish(
+        id="salmorejo-cordobes",
+        name="Salmorejo cordobés con virutas de jamón ibérico",
+        category="Entrantes y Cuchara",
+        description="Crema fría emulsionada de tomate maduro, pan de telera y aceite de oliva virgen extra picual.",
+        target_sensory=SensoryRadar(
+            body=5.2, acidity=8.5, tannins=1.2, fruit=6.5, oak=2.0
+        ),
+        suggested_wine_type=WineType.FORTIFIED,
+    ),
+    Dish(
+        id="tartar-atun-almadraba",
+        name="Tartar de atún rojo de almadraba",
+        category="Pescados y Mariscos",
+        description="Ventresca y lomo de atún rojo cortado a cuchillo, aliñado con yuzu, sésamo tostado y aceite suave.",
+        target_sensory=SensoryRadar(
+            body=5.8, acidity=8.2, tannins=1.5, fruit=8.0, oak=2.0
+        ),
+        suggested_wine_type=WineType.SPARKLING,
+    ),
 ]
 
 
@@ -269,15 +329,26 @@ CLIMATE_MAP: dict[str, str] = {
 
 
 def init_db(db_engine: Engine, session_factory: sessionmaker[Session]) -> None:
-    """Create database tables and seed curated wines and dishes if empty."""
+    """Create database tables and seed missing curated wines and dishes."""
     Base.metadata.create_all(bind=db_engine)
     with session_factory() as session:
-        wine_count = session.scalar(select(func.count()).select_from(WineModel)) or 0
-        if wine_count == 0:
-            session.add_all([WineModel.from_schema(w) for w in CURATED_WINES])
-        dish_count = session.scalar(select(func.count()).select_from(DishModel)) or 0
-        if dish_count == 0:
-            session.add_all([DishModel.from_schema(d) for d in CURATED_DISHES])
+        existing_wines = set(session.scalars(select(WineModel.id)).all())
+        missing_wines = [
+            WineModel.from_schema(w)
+            for w in CURATED_WINES
+            if w.id not in existing_wines
+        ]
+        if missing_wines:
+            session.add_all(missing_wines)
+
+        existing_dishes = set(session.scalars(select(DishModel.id)).all())
+        missing_dishes = [
+            DishModel.from_schema(d)
+            for d in CURATED_DISHES
+            if d.id not in existing_dishes
+        ]
+        if missing_dishes:
+            session.add_all(missing_dishes)
         session.commit()
 
 
