@@ -122,11 +122,28 @@ def test_recommend_pairing_chuleton_success(engine: SommelierEngine) -> None:
     assert recommendation.compatibility_score >= 80.0
     assert recommendation.primary_wine.wine_type == WineType.RED
     assert recommendation.primary_wine.price_eur <= 60.0
-    assert (
-        "afinidades" in recommendation.sommelier_explanation.lower()
-        or "afinidad" in recommendation.sommelier_explanation.lower()
-    )
+    explanation = recommendation.sommelier_explanation
+    assert "%" not in explanation
+    assert "/10" not in explanation
+    assert "¿Por qué funciona?" in explanation
+    assert "Consejo de servicio:" in explanation
     assert len(recommendation.alternative_wines) <= 2
+
+
+def test_explanation_is_educational_and_omits_tannins_for_whites(
+    engine: SommelierEngine,
+) -> None:
+    """Verify explanation avoids numeric scores and omits tannins for low-tannin whites."""
+    req = DishPairingRequest(
+        dish_id="cochinillo-asado", max_budget_eur=50.0, preferred_type=WineType.WHITE
+    )
+    rec = engine.recommend_pairing(req)
+    explanation = rec.sommelier_explanation
+
+    assert "%" not in explanation
+    assert "/10" not in explanation
+    assert "taninos" not in explanation.lower()
+    assert "Consejo de servicio:" in explanation
 
 
 def test_recommend_pairing_pulpo_recommends_white(
@@ -208,3 +225,51 @@ def test_recommend_pairing_relaxes_type_filter_when_none_match(
 
     assert rec.primary_wine.id == "cheap-white"
     assert rec.primary_wine.price_eur <= 15.0
+
+
+def test_db_backed_engine_pagination_search_and_pairing() -> None:
+    """Verify SQLAlchemy-backed SommelierEngine seeding, pagination, search, and pairing."""
+    from sqlalchemy.orm import Session, sessionmaker
+
+    from app.database import create_db_engine
+    from app.sommelier import init_db
+
+    db_engine = create_db_engine("sqlite:///:memory:")
+    factory = sessionmaker(
+        bind=db_engine, autoflush=False, expire_on_commit=False, class_=Session
+    )
+    init_db(db_engine, factory)
+    init_db(db_engine, factory)  # Verify idempotent seeding
+
+    db_sommelier = SommelierEngine(session_factory=factory)
+
+    page1 = db_sommelier.get_wines(limit=3, offset=0)
+    page2 = db_sommelier.get_wines(limit=3, offset=3)
+    assert len(page1) == 3
+    assert len(page2) == 3
+    assert {w.id for w in page1}.isdisjoint({w.id for w in page2})
+
+    searched_wines = db_sommelier.get_wines(q="Ardanza")
+    assert len(searched_wines) == 1
+    assert searched_wines[0].id == "vina-ardanza-reserva"
+
+    searched_dishes = db_sommelier.get_dishes(category="Carnes", q="Cochinillo")
+    assert len(searched_dishes) == 1
+    assert searched_dishes[0].id == "cochinillo-asado"
+
+    assert db_sommelier.get_wine_by_id("vina-ardanza-reserva") is not None
+    assert db_sommelier.get_wine_by_id("missing-wine") is None
+    assert len(db_sommelier.get_regions()) >= 5
+
+    rec = db_sommelier.recommend_pairing(
+        DishPairingRequest(
+            dish_id="chuleton-brasa", max_budget_eur=60.0, preferred_type=WineType.RED
+        )
+    )
+    assert rec.primary_wine.wine_type == WineType.RED
+    assert len(rec.alternative_wines) == 2
+
+    with pytest.raises(ValueError, match="No wines found"):
+        db_sommelier.recommend_pairing(
+            DishPairingRequest(dish_id="chuleton-brasa", max_budget_eur=1.0)
+        )

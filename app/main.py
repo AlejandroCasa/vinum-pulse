@@ -3,6 +3,7 @@
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 
+from app.database import SessionLocal, engine
 from app.schemas import (
     Dish,
     DishPairingRequest,
@@ -11,7 +12,7 @@ from app.schemas import (
     WineProfile,
     WineType,
 )
-from app.sommelier import SommelierEngine
+from app.sommelier import SommelierEngine, init_db
 from app.ui import DASHBOARD_HTML
 
 app = FastAPI(
@@ -23,7 +24,8 @@ app = FastAPI(
     version="0.1.0",
 )
 
-sommelier = SommelierEngine()
+init_db(engine, SessionLocal)
+sommelier = SommelierEngine(session_factory=SessionLocal)
 
 
 @app.get("/healthz", tags=["Health"])
@@ -43,17 +45,44 @@ def list_wines(
     max_price: float | None = Query(
         default=None, gt=0, description="Maximum bottle price in EUR"
     ),
+    q: str | None = Query(
+        default=None, description="Search by wine name, winery, or appellation"
+    ),
+    limit: int = Query(
+        default=100, ge=1, le=500, description="Maximum number of items to return"
+    ),
+    offset: int = Query(
+        default=0, ge=0, description="Number of items to skip for pagination"
+    ),
 ) -> list[WineProfile]:
-    """Return cataloged wines with optional filtering."""
+    """Return cataloged wines with optional filtering and pagination."""
     return sommelier.get_wines(
-        appellation=appellation, wine_type=wine_type, max_price=max_price
+        appellation=appellation,
+        wine_type=wine_type,
+        max_price=max_price,
+        q=q,
+        limit=limit,
+        offset=offset,
     )
 
 
 @app.get("/api/v1/dishes", response_model=list[Dish], tags=["Catalog"])
-def list_dishes() -> list[Dish]:
-    """Return all cataloged dishes and their 5D target sensory profiles."""
-    return sommelier.get_dishes()
+def list_dishes(
+    category: str | None = Query(
+        default=None, description="Filter by culinary category"
+    ),
+    q: str | None = Query(
+        default=None, description="Search by dish name or description"
+    ),
+    limit: int = Query(
+        default=100, ge=1, le=500, description="Maximum number of items to return"
+    ),
+    offset: int = Query(
+        default=0, ge=0, description="Number of items to skip for pagination"
+    ),
+) -> list[Dish]:
+    """Return cataloged dishes with optional filtering and pagination."""
+    return sommelier.get_dishes(category=category, q=q, limit=limit, offset=offset)
 
 
 @app.get("/api/v1/regions", response_model=list[RegionSummary], tags=["Catalog"])
