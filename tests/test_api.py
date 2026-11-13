@@ -116,3 +116,33 @@ def test_get_dashboard_serves_html() -> None:
     assert "Radar de Cata" in html
     assert "radarChart" in html
     assert "budget-slider" in html
+
+
+def test_list_wines_pagination_and_search() -> None:
+    """Verify /api/v1/wines supports limit, offset, and text search q."""
+    p1 = client.get("/api/v1/wines", params={"limit": 2, "offset": 0})
+    p2 = client.get("/api/v1/wines", params={"limit": 2, "offset": 2})
+    assert p1.status_code == 200
+    assert p2.status_code == 200
+    assert len(p1.json()) == 2
+    assert len(p2.json()) == 2
+    assert p1.json()[0]["id"] != p2.json()[0]["id"]
+
+    search = client.get("/api/v1/wines", params={"q": "Belondrade"})
+    assert search.status_code == 200
+    assert len(search.json()) == 1
+    assert search.json()[0]["id"] == "belondrade-lurton"
+
+
+def test_list_dishes_pagination_and_search() -> None:
+    """Verify /api/v1/dishes supports category, q, limit, and offset."""
+    p1 = client.get("/api/v1/dishes", params={"limit": 2, "offset": 0})
+    assert p1.status_code == 200
+    assert len(p1.json()) == 2
+
+    search = client.get(
+        "/api/v1/dishes", params={"category": "Carnes", "q": "Cochinillo"}
+    )
+    assert search.status_code == 200
+    assert len(search.json()) == 1
+    assert search.json()[0]["id"] == "cochinillo-asado"

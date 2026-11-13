@@ -5,11 +5,28 @@ description = "Real-Time Sommelier Radar, Gastronomic Pairing Engine, and Cellar
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.162.0",
+    "fastapi>=0.115.0",
     "httpx>=0.28.1",
-    "pydantic>=2.14.2",
-    "pytest>=9.2.0",
-    "uvicorn[standard]>=0.54.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.16.2",
+    "sqlalchemy>=2.1.8",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "bandit[toml]>=1.8.0",
+    "black>=24.10.0",
+    "commitizen>=4.19.3",
+    "isort>=5.13.2",
+    "mypy>=1.14.0",
+    "pip-audit>=2.7.3",
+    "pre-commit>=4.7.0",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "radon>=6.0.1",
+    "ruff>=0.9.0",
+    "xenon>=0.9.3",
 ]
 
 [tool.uv]
@@ -38,6 +55,14 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
 [tool.ruff]
 target-version = "py312"
 line-length = 88
@@ -45,7 +70,23 @@ line-length = 88
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+"app/ui.py" = ["E501"]
+"app/sommelier.py" = ["E501"]
+"app/schemas.py" = ["E501"]
+"tests/test_sommelier.py" = ["E501"]
+"app/main.py" = ["B008"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_provider = "pep621"
