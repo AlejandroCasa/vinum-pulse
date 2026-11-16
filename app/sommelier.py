@@ -2,13 +2,17 @@
 
 import heapq
 import math
+import uuid
+from typing import Any
 
-from sqlalchemy import Engine, func, or_, select
+from sqlalchemy import Engine, func, inspect, or_, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.database import Base
-from app.models import DishModel, WineModel
+from app.models import CellarItemModel, DishModel, WineModel
 from app.schemas import (
+    CellarCreateRequest,
+    CellarItem,
     Dish,
     DishPairingRequest,
     PairingRecommendation,
@@ -18,8 +22,9 @@ from app.schemas import (
     WineType,
 )
 
-# Curated reference catalog of premier Spanish wines across major D.O.s
+# Curated reference catalog of premier Spanish wines across 12 major D.O.s (36 authentic wines)
 CURATED_WINES: list[WineProfile] = [
+    # 1. D.O.Ca. Rioja
     WineProfile(
         id="vina-ardanza-reserva",
         name="Viña Ardanza Reserva",
@@ -33,118 +38,13 @@ CURATED_WINES: list[WineProfile] = [
         glass_type="Burdeos",
         sensory=SensoryRadar(body=7.8, acidity=7.0, tannins=7.5, fruit=8.0, oak=8.5),
         tasting_notes="Clásico coupage riojano (Tempranillo y Garnacha). Aromas a cedro, tabaco dulce, vainilla y cereza madura con taninos sedosos.",
-    ),
-    WineProfile(
-        id="pago-carraovejas",
-        name="Pago de Carraovejas",
-        winery="Bodega Pago de Carraovejas",
-        appellation="D.O. Ribera del Duero",
-        wine_type=WineType.RED,
-        vintage=2021,
-        price_eur=48.0,
-        serving_temp_c=16.0,
-        decant_minutes=30,
-        glass_type="Burdeos",
-        sensory=SensoryRadar(body=8.8, acidity=6.5, tannins=8.5, fruit=8.5, oak=8.0),
-        tasting_notes="Potente y envolvente. Fruta negra madura, especias tostadas y estructura tánica cremosa que llena el paladar.",
-    ),
-    WineProfile(
-        id="pazo-senorans-seleccion",
-        name="Pazo Señorans Selección de Añada",
-        winery="Pazo de Señorans",
-        appellation="D.O. Rías Baixas",
-        wine_type=WineType.WHITE,
-        vintage=2014,
-        price_eur=46.0,
-        serving_temp_c=11.0,
-        decant_minutes=0,
-        glass_type="Borgoña",
-        sensory=SensoryRadar(body=6.5, acidity=8.8, tannins=1.5, fruit=8.2, oak=2.0),
-        tasting_notes="Albariño mítico de guarda criado sobre lías en acero durante más de 30 meses. Alta mineralidad atlántica, hidrocarburos y cítricos nobles.",
-    ),
-    WineProfile(
-        id="belondrade-lurton",
-        name="Belondrade y Lurton",
-        winery="Belondrade",
-        appellation="D.O. Rueda",
-        wine_type=WineType.WHITE,
-        vintage=2022,
-        price_eur=39.0,
-        serving_temp_c=12.0,
-        decant_minutes=15,
-        glass_type="Borgoña",
-        sensory=SensoryRadar(body=7.2, acidity=7.5, tannins=2.0, fruit=7.6, oak=6.5),
-        tasting_notes="Pionero Verdejo fermentado y criado en barrica de roble francés. Textura untuosa, flor blanca, hinojo silvestre y humo elegante.",
-    ),
-    WineProfile(
-        id="les-terrasses",
-        name="Les Terrasses Velles Vinyes",
-        winery="Álvaro Palacios",
-        appellation="D.O.Q. Priorat",
-        wine_type=WineType.RED,
-        vintage=2021,
-        price_eur=39.5,
-        serving_temp_c=16.0,
-        decant_minutes=45,
-        glass_type="Burdeos",
-        sensory=SensoryRadar(body=8.5, acidity=7.5, tannins=8.0, fruit=8.2, oak=7.5),
-        tasting_notes="Suelo escarpado de pizarra licorella. Garnacha y Cariñena concentradas, grafito, hierbas mediterráneas y fruta roja licorosa.",
-    ),
-    WineProfile(
-        id="tio-pepe-en-rama",
-        name="Tío Pepe en Rama Fino",
-        winery="González Byass",
-        appellation="D.O. Jerez-Xérès-Sherry",
-        wine_type=WineType.FORTIFIED,
-        vintage=2023,
-        price_eur=19.5,
-        serving_temp_c=8.0,
-        decant_minutes=0,
-        glass_type="Copita",
-        sensory=SensoryRadar(body=5.2, acidity=8.2, tannins=1.2, fruit=5.5, oak=3.5),
-        tasting_notes="Crianza biológica bajo velo de flor sin filtrar ni clarificar. Aromas punzantes a levadura, almendra cruda y una salinidad yodada arrolladora.",
-    ),
-    WineProfile(
-        id="san-roman",
-        name="San Román",
-        winery="Bodegas Maurodos",
-        appellation="D.O. Toro",
-        wine_type=WineType.RED,
-        vintage=2020,
-        price_eur=36.0,
-        serving_temp_c=17.0,
-        decant_minutes=45,
-        glass_type="Burdeos",
-        sensory=SensoryRadar(body=9.5, acidity=6.0, tannins=9.0, fruit=8.5, oak=8.5),
-        tasting_notes="Tinta de Toro de viñas viejas prefiloxéricas. Opulencia tánica, regaliz negro, maderas balsámicas y una concentración colosal.",
-    ),
-    WineProfile(
-        id="petalos-del-bierzo",
-        name="Pétalos del Bierzo",
-        winery="Descendientes de J. Palacios",
-        appellation="D.O. Bierzo",
-        wine_type=WineType.RED,
-        vintage=2022,
-        price_eur=21.5,
-        serving_temp_c=15.0,
-        decant_minutes=15,
-        glass_type="Borgoña",
-        sensory=SensoryRadar(body=6.5, acidity=7.5, tannins=5.8, fruit=8.5, oak=5.2),
-        tasting_notes="Mencía atlántica de ladera. Perfil fragante a violetas, frambuesa ácida y frescura mineral con trago directo y seductor.",
-    ),
-    WineProfile(
-        id="gramona-imperial",
-        name="Gramona Imperial Brut Nature",
-        winery="Gramona",
-        appellation="D.O. Corpinnat / Penedès",
-        wine_type=WineType.SPARKLING,
-        vintage=2018,
-        price_eur=26.0,
-        serving_temp_c=8.0,
-        decant_minutes=0,
-        glass_type="Tulipa",
-        sensory=SensoryRadar(body=6.0, acidity=8.6, tannins=1.4, fruit=7.2, oak=4.0),
-        tasting_notes="Crianza en rima superior a 50 meses. Burbuja fundida, notas de brioche, manzana asada y una frescura vibrante que limpia el paladar.",
+        latitude=42.5735,
+        longitude=-2.8521,
+        altitude_m=580,
+        soil_type="Arcilloso-calcáreo",
+        climate="Continental templado con influencia atlántica",
+        aging_potential_years=15,
+        tagline="Elegancia clásica riojana de taninos sedosos y crianza pausada en roble americano.",
     ),
     WineProfile(
         id="ramon-bilbao-crianza",
@@ -159,6 +59,184 @@ CURATED_WINES: list[WineProfile] = [
         glass_type="Burdeos",
         sensory=SensoryRadar(body=6.2, acidity=6.5, tannins=6.0, fruit=7.5, oak=6.5),
         tasting_notes="Tempranillo accesible y versátil con crianza equilibrada en barrica de roble americano. Notas de vainilla, mora y coco.",
+        latitude=42.5621,
+        longitude=-2.8502,
+        altitude_m=520,
+        soil_type="Arcilloso",
+        climate="Continental templado",
+        aging_potential_years=6,
+        tagline="Fruta roja vibrante, vainilla balsámica y trago envolvente.",
+    ),
+    WineProfile(
+        id="castillo-ygay-gran-reserva",
+        name="Castillo Ygay Gran Reserva Especial",
+        winery="Marqués de Murrieta",
+        appellation="D.O.Ca. Rioja",
+        wine_type=WineType.RED,
+        vintage=2012,
+        price_eur=220.0,
+        serving_temp_c=18.0,
+        decant_minutes=60,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=8.5, acidity=7.8, tannins=8.2, fruit=8.0, oak=9.2),
+        tasting_notes="Icono mundial. Ensamblaje magistral de Tempranillo y Mazuelo con décadas de potencial. Trufa negra, ebanistería y ciruela pasa.",
+        latitude=42.4412,
+        longitude=-2.3985,
+        altitude_m=485,
+        soil_type="Arcilloso-calcáreo con cantos",
+        climate="Continental templado",
+        aging_potential_years=30,
+        tagline="Icono universal de elegancia aristocrática, trufa negra y persistencia sin fin.",
+    ),
+    # 2. D.O. Ribera del Duero
+    WineProfile(
+        id="pago-carraovejas",
+        name="Pago de Carraovejas",
+        winery="Bodega Pago de Carraovejas",
+        appellation="D.O. Ribera del Duero",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=48.0,
+        serving_temp_c=16.0,
+        decant_minutes=30,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=8.8, acidity=6.5, tannins=8.5, fruit=8.5, oak=8.0),
+        tasting_notes="Potente y envolvente. Fruta negra madura, especias tostadas y estructura tánica cremosa que llena el paladar.",
+        latitude=41.5976,
+        longitude=-4.1165,
+        altitude_m=850,
+        soil_type="Calizo y margas",
+        climate="Mediterráneo continental extremo",
+        aging_potential_years=12,
+        tagline="Potencia envolvente con tanino dulce y madurez voluptuosa de fruta negra.",
+    ),
+    WineProfile(
+        id="vega-sicilia-unico",
+        name="Vega Sicilia Único",
+        winery="Bodegas Vega Sicilia",
+        appellation="D.O. Ribera del Duero",
+        wine_type=WineType.RED,
+        vintage=2014,
+        price_eur=495.0,
+        serving_temp_c=18.0,
+        decant_minutes=60,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=9.2, acidity=8.0, tannins=8.8, fruit=8.6, oak=9.0),
+        tasting_notes="Mito enológico. Crianza legendaria de casi 10 años en madera y botella. Finura inigualable, notas de cedro, tabaco habano y grosella.",
+        latitude=41.6142,
+        longitude=-4.2635,
+        altitude_m=750,
+        soil_type="Aluvial calcáreo",
+        climate="Mediterráneo continental extremo",
+        aging_potential_years=40,
+        tagline="La leyenda viva del vino español, finura infinita y complejidad intemporal.",
+    ),
+    WineProfile(
+        id="pesquera-crianza",
+        name="Tinto Pesquera Crianza",
+        winery="Familia Fernández Rivera",
+        appellation="D.O. Ribera del Duero",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=24.0,
+        serving_temp_c=16.0,
+        decant_minutes=20,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=7.5, acidity=6.8, tannins=7.5, fruit=8.2, oak=7.2),
+        tasting_notes="El pionero del estilo moderno ribereño. 100% Tempranillo con fruta negra, regaliz balsámico y roble americano especiado.",
+        latitude=41.6425,
+        longitude=-4.0950,
+        altitude_m=800,
+        soil_type="Pardo-calizo arcilloso",
+        climate="Mediterráneo continental extremo",
+        aging_potential_years=8,
+        tagline="Pionero del renacer ribereño, fruta madura y tostados nobles.",
+    ),
+    # 3. D.O.Q. Priorat
+    WineProfile(
+        id="les-terrasses",
+        name="Les Terrasses Velles Vinyes",
+        winery="Álvaro Palacios",
+        appellation="D.O.Q. Priorat",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=39.5,
+        serving_temp_c=16.0,
+        decant_minutes=45,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=8.5, acidity=7.5, tannins=8.0, fruit=8.2, oak=7.5),
+        tasting_notes="Suelo escarpado de pizarra licorella. Garnacha y Cariñena concentradas, grafito, hierbas mediterráneas y fruta roja licorosa.",
+        latitude=41.1895,
+        longitude=0.8145,
+        altitude_m=450,
+        soil_type="Pizarra licorella",
+        climate="Mediterráneo de montaña sobre pizarra licorella",
+        aging_potential_years=10,
+        tagline="Mineralidad telúrica de bancales escarpados y garnachas centenarias.",
+    ),
+    WineProfile(
+        id="clos-mogador",
+        name="Clos Mogador",
+        winery="Clos Mogador",
+        appellation="D.O.Q. Priorat",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=95.0,
+        serving_temp_c=17.0,
+        decant_minutes=60,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=9.0, acidity=7.6, tannins=8.5, fruit=8.5, oak=8.2),
+        tasting_notes="El renacimiento del Priorat creado por René Barbier. Profundo, denso, balsámico, con flores azules, romero y mineralidad volcánica.",
+        latitude=41.1925,
+        longitude=0.8220,
+        altitude_m=400,
+        soil_type="Pizarra licorella pura",
+        climate="Mediterráneo de montaña sobre pizarra licorella",
+        aging_potential_years=25,
+        tagline="Profundidad colosal, fruta balsámica y el alma renacida del Priorat.",
+    ),
+    WineProfile(
+        id="vall-llach-idits",
+        name="Idits de Vall Llach",
+        winery="Celler Vall Llach",
+        appellation="D.O.Q. Priorat",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=29.0,
+        serving_temp_c=16.0,
+        decant_minutes=30,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=7.8, acidity=7.2, tannins=7.5, fruit=8.0, oak=6.8),
+        tasting_notes="Expresión fresca y directa de Porrera. Predominio de Cariñena de viñedos en pendiente, pimienta negra y frutos silvestres.",
+        latitude=41.1960,
+        longitude=0.8425,
+        altitude_m=520,
+        soil_type="Licorella desmenuzada",
+        climate="Mediterráneo de montaña",
+        aging_potential_years=8,
+        tagline="Cariñenas y garnachas vibrantes con frescura especiada.",
+    ),
+    # 4. D.O. Rías Baixas
+    WineProfile(
+        id="pazo-senorans-seleccion",
+        name="Pazo Señorans Selección de Añada",
+        winery="Pazo de Señorans",
+        appellation="D.O. Rías Baixas",
+        wine_type=WineType.WHITE,
+        vintage=2014,
+        price_eur=46.0,
+        serving_temp_c=11.0,
+        decant_minutes=0,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.5, acidity=8.8, tannins=1.5, fruit=8.2, oak=2.0),
+        tasting_notes="Albariño mítico de guarda criado sobre lías en acero durante más de 30 meses. Alta mineralidad atlántica, hidrocarburos y cítricos nobles.",
+        latitude=42.5412,
+        longitude=-8.6985,
+        altitude_m=50,
+        soil_type="Xabre granítico",
+        climate="Atlántico húmedo y salino",
+        aging_potential_years=15,
+        tagline="El albariño de guarda más laureado con 30 meses de lías y noble hidrocarburo.",
     ),
     WineProfile(
         id="martin-codax-albarino",
@@ -173,6 +251,184 @@ CURATED_WINES: list[WineProfile] = [
         glass_type="Tulipa",
         sensory=SensoryRadar(body=5.0, acidity=8.2, tannins=1.0, fruit=8.0, oak=1.0),
         tasting_notes="Joven y fresco. Flores blancas, manzana verde, pomelo y salinidad marina limpia y refrescante.",
+        latitude=42.5025,
+        longitude=-8.7845,
+        altitude_m=35,
+        soil_type="Granítico arenoso",
+        climate="Atlántico húmedo y salino",
+        aging_potential_years=4,
+        tagline="Frescura atlántica cristalina con pomelo, manzana verde y notas salinas.",
+    ),
+    WineProfile(
+        id="do-ferreiro-cepas-vellas",
+        name="Do Ferreiro Cepas Vellas",
+        winery="Bodegas Gerardo Méndez",
+        appellation="D.O. Rías Baixas",
+        wine_type=WineType.WHITE,
+        vintage=2022,
+        price_eur=38.0,
+        serving_temp_c=11.0,
+        decant_minutes=15,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.8, acidity=9.0, tannins=1.8, fruit=8.4, oak=2.5),
+        tasting_notes="Cepas bicentenarias de pie franco en el valle de Salnés. Tensión eléctrica, notas ahumadas, salmuera y melocotón de viña.",
+        latitude=42.5250,
+        longitude=-8.7420,
+        altitude_m=60,
+        soil_type="Granito descompuesto",
+        climate="Atlántico salino",
+        aging_potential_years=18,
+        tagline="Cepas bicentenarias de pie franco con acidez vertical y mineralidad profunda.",
+    ),
+    # 5. D.O. Bierzo
+    WineProfile(
+        id="petalos-del-bierzo",
+        name="Pétalos del Bierzo",
+        winery="Descendientes de J. Palacios",
+        appellation="D.O. Bierzo",
+        wine_type=WineType.RED,
+        vintage=2022,
+        price_eur=21.5,
+        serving_temp_c=15.0,
+        decant_minutes=15,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.5, acidity=7.5, tannins=5.8, fruit=8.5, oak=5.2),
+        tasting_notes="Mencía atlántica de ladera. Perfil fragante a violetas, frambuesa ácida y frescura mineral con trago directo y seductor.",
+        latitude=42.6120,
+        longitude=-6.8245,
+        altitude_m=650,
+        soil_type="Pizarra descompuesta",
+        climate="Microclima de transición atlántico-continental",
+        aging_potential_years=6,
+        tagline="Fragancia de violetas, frambuesa fresca y fluidez atlántica de Mencía.",
+    ),
+    WineProfile(
+        id="corullon-mencia",
+        name="Villa de Corullón",
+        winery="Descendientes de J. Palacios",
+        appellation="D.O. Bierzo",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=48.0,
+        serving_temp_c=16.0,
+        decant_minutes=30,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=7.5, acidity=7.8, tannins=7.0, fruit=8.0, oak=6.5),
+        tasting_notes="Pizarra escarpada en Corullón. Mencía de gran profundidad con notas ferruginosas, regaliz y hierba de montaña.",
+        latitude=42.5780,
+        longitude=-6.8210,
+        altitude_m=720,
+        soil_type="Pizarra ferrosa",
+        climate="Atlántico-continental",
+        aging_potential_years=15,
+        tagline="El gran Cru berciano: austeridad mineral, tanino eléctrico y elegancia.",
+    ),
+    WineProfile(
+        id="ultreia-saint-jacques",
+        name="Ultreia Saint Jacques",
+        winery="Raúl Pérez",
+        appellation="D.O. Bierzo",
+        wine_type=WineType.RED,
+        vintage=2022,
+        price_eur=14.5,
+        serving_temp_c=15.0,
+        decant_minutes=10,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.2, acidity=7.2, tannins=5.5, fruit=8.2, oak=4.5),
+        tasting_notes="La magia de Raúl Pérez. Mencía, Bastardo y Garnacha Tintorera en roble usado. Terroso, jugoso y aromático.",
+        latitude=42.5535,
+        longitude=-6.7420,
+        altitude_m=550,
+        soil_type="Arcilla con canto y arena",
+        climate="Atlántico-continental",
+        aging_potential_years=7,
+        tagline="El genio de Valtuille expresado en fruta roja directa, terrosa y envolvente.",
+    ),
+    # 6. D.O. Toro
+    WineProfile(
+        id="san-roman",
+        name="San Román",
+        winery="Bodegas Maurodos",
+        appellation="D.O. Toro",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=36.0,
+        serving_temp_c=17.0,
+        decant_minutes=45,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=9.5, acidity=6.0, tannins=9.0, fruit=8.5, oak=8.5),
+        tasting_notes="Tinta de Toro de viñas viejas prefiloxéricas. Opulencia tánica, regaliz negro, maderas balsámicas y una concentración colosal.",
+        latitude=41.4820,
+        longitude=-5.4120,
+        altitude_m=750,
+        soil_type="Arenoso-pedregoso sobre arcilla",
+        climate="Continental árido de alta insolación",
+        aging_potential_years=14,
+        tagline="Poderío tánico domesticado con fruta negra opulenta y maderas balsámicas.",
+    ),
+    WineProfile(
+        id="pintia-toro",
+        name="Pintia",
+        winery="Bodegas Pintia / Vega Sicilia",
+        appellation="D.O. Toro",
+        wine_type=WineType.RED,
+        vintage=2018,
+        price_eur=65.0,
+        serving_temp_c=17.0,
+        decant_minutes=45,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=9.2, acidity=6.5, tannins=8.8, fruit=8.6, oak=8.5),
+        tasting_notes="Interpretación sublime de Toro por Vega Sicilia. Concentración refinada, moras silvestres, café tostado y textura aterciopelada.",
+        latitude=41.5140,
+        longitude=-5.3950,
+        altitude_m=700,
+        soil_type="Canto rodado aluvial",
+        climate="Continental árido",
+        aging_potential_years=16,
+        tagline="La elegancia contemporánea de Toro: redondez, moras y final especiado.",
+    ),
+    WineProfile(
+        id="numanthia",
+        name="Numanthia",
+        winery="Bodega Numanthia",
+        appellation="D.O. Toro",
+        wine_type=WineType.RED,
+        vintage=2017,
+        price_eur=55.0,
+        serving_temp_c=17.0,
+        decant_minutes=45,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=9.6, acidity=6.2, tannins=9.2, fruit=8.4, oak=8.8),
+        tasting_notes="Viñas francas de más de 100 años. Fuerza colosal, cacao amargo, ciruela negra macerada y taninos densos y nobles.",
+        latitude=41.5230,
+        longitude=-5.3620,
+        altitude_m=720,
+        soil_type="Arcilla y grava",
+        climate="Continental árido",
+        aging_potential_years=20,
+        tagline="Concentración legendaria de viñedos centenarios resistentes a la filoxera.",
+    ),
+    # 7. D.O. Jerez-Xérès-Sherry
+    WineProfile(
+        id="tio-pepe-en-rama",
+        name="Tío Pepe en Rama Fino",
+        winery="González Byass",
+        appellation="D.O. Jerez-Xérès-Sherry",
+        wine_type=WineType.FORTIFIED,
+        vintage=2023,
+        price_eur=19.5,
+        serving_temp_c=8.0,
+        decant_minutes=0,
+        glass_type="Copita",
+        sensory=SensoryRadar(body=5.2, acidity=8.2, tannins=1.2, fruit=5.5, oak=3.5),
+        tasting_notes="Crianza biológica bajo velo de flor sin filtrar ni clarificar. Aromas punzantes a levadura, almendra cruda y una salinidad yodada arrolladora.",
+        latitude=36.6850,
+        longitude=-6.1420,
+        altitude_m=45,
+        soil_type="Albariza deslumbrante",
+        climate="Mediterráneo cálido con albariza oceánica",
+        aging_potential_years=3,
+        tagline="Velo de flor sin filtrar: salinidad punzante, almendra verde y levadura viva.",
     ),
     WineProfile(
         id="lustau-oloroso-don-nuno",
@@ -187,6 +443,354 @@ CURATED_WINES: list[WineProfile] = [
         glass_type="Copita",
         sensory=SensoryRadar(body=7.8, acidity=7.0, tannins=3.0, fruit=5.0, oak=8.2),
         tasting_notes="Envejecimiento oxidativo en solera centenaria. Nuez tostada, ebanistería noble, cuero y humo con un final seco interminable.",
+        latitude=36.6820,
+        longitude=-6.1360,
+        altitude_m=50,
+        soil_type="Albariza pura",
+        climate="Mediterráneo cálido con albariza oceánica",
+        aging_potential_years=20,
+        tagline="Oxidación aristocrática: ebanistería noble, nuez tostada y final seco infinito.",
+    ),
+    WineProfile(
+        id="valdespino-inocente-fino",
+        name="Valdespino Fino Inocente",
+        winery="Valdespino",
+        appellation="D.O. Jerez-Xérès-Sherry",
+        wine_type=WineType.FORTIFIED,
+        vintage=2023,
+        price_eur=18.0,
+        serving_temp_c=8.0,
+        decant_minutes=0,
+        glass_type="Copita",
+        sensory=SensoryRadar(body=5.4, acidity=8.4, tannins=1.3, fruit=5.2, oak=4.0),
+        tasting_notes="El único fino fermentado en bota de roble y con 10 criaderas en Macharnudo Alto. Complejidad mineral insuperable.",
+        latitude=36.6910,
+        longitude=-6.1280,
+        altitude_m=60,
+        soil_type="Albariza de Macharnudo Alto",
+        climate="Mediterráneo oceánico",
+        aging_potential_years=5,
+        tagline="El único fino fermentado en bota de roble americano por el sistema de 10 criaderas.",
+    ),
+    # 8. D.O. Rueda
+    WineProfile(
+        id="belondrade-lurton",
+        name="Belondrade y Lurton",
+        winery="Belondrade",
+        appellation="D.O. Rueda",
+        wine_type=WineType.WHITE,
+        vintage=2022,
+        price_eur=39.0,
+        serving_temp_c=12.0,
+        decant_minutes=15,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=7.2, acidity=7.5, tannins=2.0, fruit=7.6, oak=6.5),
+        tasting_notes="Pionero Verdejo fermentado y criado en barrica de roble francés. Textura untuosa, flor blanca, hinojo silvestre y humo elegante.",
+        latitude=41.3850,
+        longitude=-4.9540,
+        altitude_m=750,
+        soil_type="Canto rodado sobre arcilla",
+        climate="Continental de meseta",
+        aging_potential_years=10,
+        tagline="El Verdejo de guarda por antonomasia: untuosidad bordelesa y flor blanca.",
+    ),
+    WineProfile(
+        id="jose-pariente-verdejo",
+        name="José Pariente Verdejo",
+        winery="Bodegas José Pariente",
+        appellation="D.O. Rueda",
+        wine_type=WineType.WHITE,
+        vintage=2023,
+        price_eur=11.0,
+        serving_temp_c=9.0,
+        decant_minutes=0,
+        glass_type="Tulipa",
+        sensory=SensoryRadar(body=5.2, acidity=8.0, tannins=1.2, fruit=8.2, oak=1.0),
+        tasting_notes="Expresión varietal pura: hierba fresca, anís, hinojo y pomelo con paso crujiente y agradable amargor varietal.",
+        latitude=41.4020,
+        longitude=-4.9720,
+        altitude_m=730,
+        soil_type="Cascajoso pedregoso",
+        climate="Continental de meseta",
+        aging_potential_years=3,
+        tagline="Expresión clásica de hierba fresca recién cortada, hinojo y fruta de hueso.",
+    ),
+    WineProfile(
+        id="ossian-vinas-viejas",
+        name="Ossian Viñas Viejas",
+        winery="Ossian Vides y Vinos",
+        appellation="D.O. Rueda",
+        wine_type=WineType.WHITE,
+        vintage=2021,
+        price_eur=32.0,
+        serving_temp_c=12.0,
+        decant_minutes=20,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=7.0, acidity=7.8, tannins=1.8, fruit=7.8, oak=6.0),
+        tasting_notes="Verdejo prefiloxérico en Nieva sobre arenas puras. Complejidad aromática, salinidad, cítricos maduros y gran textura grasa.",
+        latitude=41.1240,
+        longitude=-4.5120,
+        altitude_m=880,
+        soil_type="Arenas silíceas prefiloxéricas",
+        climate="Continental extremo",
+        aging_potential_years=12,
+        tagline="Verdejo centenario segoviano fermentado en barrica con sapidez y cuerpo.",
+    ),
+    # 9. D.O. Cava / Corpinnat
+    WineProfile(
+        id="gramona-imperial",
+        name="Gramona Imperial Brut Nature",
+        winery="Gramona",
+        appellation="D.O. Corpinnat / Penedès",
+        wine_type=WineType.SPARKLING,
+        vintage=2018,
+        price_eur=26.0,
+        serving_temp_c=8.0,
+        decant_minutes=0,
+        glass_type="Tulipa",
+        sensory=SensoryRadar(body=6.0, acidity=8.6, tannins=1.4, fruit=7.2, oak=4.0),
+        tasting_notes="Crianza en rima superior a 50 meses. Burbuja fundida, notas de brioche, manzana asada y una frescura vibrante que limpia el paladar.",
+        latitude=41.4285,
+        longitude=1.7890,
+        altitude_m=220,
+        soil_type="Arcillo-calcáreo con limo",
+        climate="Mediterráneo marítimo templado",
+        aging_potential_years=8,
+        tagline="Más de 50 meses de rima: burbuja cremosa, brioche y acidez gastronómica.",
+    ),
+    WineProfile(
+        id="recaredo-terrers-brut-nature",
+        name="Recaredo Terrers Brut Nature",
+        winery="Recaredo",
+        appellation="D.O. Corpinnat / Penedès",
+        wine_type=WineType.SPARKLING,
+        vintage=2019,
+        price_eur=32.0,
+        serving_temp_c=9.0,
+        decant_minutes=0,
+        glass_type="Tulipa",
+        sensory=SensoryRadar(body=6.2, acidity=8.8, tannins=1.5, fruit=7.0, oak=3.5),
+        tasting_notes="Biodinámica pura y crianza con tapón de corcho natural. Tensión mineral, hierbas secas, burbuja microscópica y final seco.",
+        latitude=41.4240,
+        longitude=1.7820,
+        altitude_m=250,
+        soil_type="Calcáreo limoso",
+        climate="Mediterráneo marítimo templado",
+        aging_potential_years=10,
+        tagline="Biodinámica rigurosa, tapón de corcho en rima y sequedad salina insuperable.",
+    ),
+    WineProfile(
+        id="llopart-leopardi",
+        name="Llopart Leopardi Brut Nature",
+        winery="Cava Llopart",
+        appellation="D.O. Corpinnat / Penedès",
+        wine_type=WineType.SPARKLING,
+        vintage=2017,
+        price_eur=25.0,
+        serving_temp_c=8.0,
+        decant_minutes=0,
+        glass_type="Tulipa",
+        sensory=SensoryRadar(body=5.8, acidity=8.5, tannins=1.3, fruit=7.4, oak=3.8),
+        tasting_notes="Viñedos de montaña en Subirats. Crianza larga con recuerdos a frutos secos, mantequilla fresca y burbuja integrada.",
+        latitude=41.4080,
+        longitude=1.8120,
+        altitude_m=340,
+        soil_type="Calizo fósil de montaña",
+        climate="Mediterráneo",
+        aging_potential_years=8,
+        tagline="Elegancia centenaria con finas notas tostadas y crema pastelera.",
+    ),
+    # 10. D.O. Ribeira Sacra
+    WineProfile(
+        id="guimaro-finca-meixeman",
+        name="Guímaro Finca Meixemán",
+        winery="Adega Guímaro",
+        appellation="D.O. Ribeira Sacra",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=28.0,
+        serving_temp_c=15.0,
+        decant_minutes=20,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.8, acidity=7.8, tannins=6.2, fruit=8.2, oak=5.5),
+        tasting_notes="Viticultura heroica en los cañones del Sil. Mencía y uvas autóctonas en bancales de pizarra. Fruta silvestre, grafito y pimienta.",
+        latitude=42.4280,
+        longitude=-7.4850,
+        altitude_m=420,
+        soil_type="Pizarra y esquisto en bancales",
+        climate="Atlántico-continental",
+        aging_potential_years=10,
+        tagline="Viticultura heroica de cañones del Sil: notas minerales, grosella y frescor.",
+    ),
+    WineProfile(
+        id="ponte-da-boga-bancales",
+        name="Ponte da Boga Bancales Ya Hablados",
+        winery="Adega Ponte da Boga",
+        appellation="D.O. Ribeira Sacra",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=22.0,
+        serving_temp_c=15.0,
+        decant_minutes=15,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.5, acidity=7.6, tannins=6.0, fruit=8.0, oak=5.0),
+        tasting_notes="Laderas abruptas sobre el río Bibei. Mencía fluida con recuerdos a hojas secas, frambuesa y frescura atlántica.",
+        latitude=42.3920,
+        longitude=-7.3150,
+        altitude_m=500,
+        soil_type="Pizarra y granito en pendiente",
+        climate="Atlántico-continental",
+        aging_potential_years=8,
+        tagline="Mencía de vértigo con aromas balsámicos y trago sedoso de montaña.",
+    ),
+    WineProfile(
+        id="lalama-dominio-do-bibei",
+        name="Lalama",
+        winery="Dominio do Bibei",
+        appellation="D.O. Ribeira Sacra",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=24.0,
+        serving_temp_c=16.0,
+        decant_minutes=20,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.7, acidity=7.9, tannins=6.2, fruit=8.3, oak=5.2),
+        tasting_notes="Arquitectura y viñedo integrados. Mencía con Brancellao y Mouratón en barricas y tinos usados. Finura atlántica sublime.",
+        latitude=42.3680,
+        longitude=-7.2180,
+        altitude_m=600,
+        soil_type="Granito y arcilla esquistosa",
+        climate="Atlántico-continental",
+        aging_potential_years=12,
+        tagline="Finura casi borgoñona con especias silvestres y acidez vibrante.",
+    ),
+    # 11. D.O. Somontano
+    WineProfile(
+        id="blecua-somontano",
+        name="Blecua",
+        winery="Viñas del Vero / Blecua",
+        appellation="D.O. Somontano",
+        wine_type=WineType.RED,
+        vintage=2017,
+        price_eur=98.0,
+        serving_temp_c=17.0,
+        decant_minutes=45,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=8.8, acidity=6.8, tannins=8.5, fruit=8.2, oak=8.8),
+        tasting_notes="El gran vino de autor del Somontano. Coupage bordelés y mediterráneo. Taninos maduros, chocolate negro, ciruela y tabaco rubio.",
+        latitude=42.0350,
+        longitude=0.1280,
+        altitude_m=550,
+        soil_type="Aluvial franco-arenoso",
+        climate="Continental prepirenaico",
+        aging_potential_years=20,
+        tagline="El vino de culto del Somontano: ensamblaje magistral, tanino maduro y cacao.",
+    ),
+    WineProfile(
+        id="enate-cabernet-merlot",
+        name="Enate Cabernet Sauvignon-Merlot",
+        winery="Bodegas Enate",
+        appellation="D.O. Somontano",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=10.5,
+        serving_temp_c=16.0,
+        decant_minutes=15,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=7.0, acidity=6.6, tannins=7.0, fruit=7.8, oak=6.5),
+        tasting_notes="Equilibrio aromático del pie de los Pirineos. Pimiento rojo asado, grosella negra, tofe y paso amplio y sedoso.",
+        latitude=42.0620,
+        longitude=0.1740,
+        altitude_m=600,
+        soil_type="Calizo y pedregoso",
+        climate="Continental prepirenaico",
+        aging_potential_years=8,
+        tagline="Perfil atlántico-pirenaico con pimiento asado, ciruela negra y especias dulces.",
+    ),
+    WineProfile(
+        id="vinas-del-vero-gran-vos",
+        name="Viñas del Vero Gran Vos Reserva",
+        winery="Viñas del Vero",
+        appellation="D.O. Somontano",
+        wine_type=WineType.RED,
+        vintage=2018,
+        price_eur=18.5,
+        serving_temp_c=16.0,
+        decant_minutes=20,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=7.6, acidity=6.7, tannins=7.5, fruit=8.0, oak=7.2),
+        tasting_notes="Reserva elaborado con las mejores uvas tintas de la bodega. Notas de zarzamora, torrefacto, vainilla y final largo.",
+        latitude=42.0410,
+        longitude=0.1350,
+        altitude_m=520,
+        soil_type="Franco-calizo",
+        climate="Continental prepirenaico",
+        aging_potential_years=10,
+        tagline="Reserva aromático con mora confitada, cedro y cuerpo equilibrado.",
+    ),
+    # 12. D.O. Jumilla
+    WineProfile(
+        id="clio-jumilla",
+        name="Clio",
+        winery="Bodegas El Nido",
+        appellation="D.O. Jumilla",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=48.0,
+        serving_temp_c=17.0,
+        decant_minutes=45,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=9.4, acidity=6.2, tannins=8.8, fruit=8.8, oak=8.5),
+        tasting_notes="70% Monastrell de viñas viejas y 30% Cabernet Sauvignon. Poder colosal, arándano maduro, moca, regaliz y textura suntuosa.",
+        latitude=38.4750,
+        longitude=-1.3280,
+        altitude_m=800,
+        soil_type="Calizo pedregoso sobre tosca",
+        climate="Mediterráneo seco y soleado",
+        aging_potential_years=15,
+        tagline="Monastrell y Cabernet de opulencia arrolladora, torrefacto y arándanos maduros.",
+    ),
+    WineProfile(
+        id="el-nido-jumilla",
+        name="El Nido",
+        winery="Bodegas El Nido",
+        appellation="D.O. Jumilla",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=140.0,
+        serving_temp_c=17.0,
+        decant_minutes=60,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=9.7, acidity=6.4, tannins=9.0, fruit=9.0, oak=9.0),
+        tasting_notes="La cúspide del sureste español. 70% Cabernet Sauvignon y 30% Monastrell. Intensidad abrumadora de fruta negra, cacao y especias nobles.",
+        latitude=38.4760,
+        longitude=-1.3290,
+        altitude_m=820,
+        soil_type="Caliza superficial extrema",
+        climate="Mediterráneo seco",
+        aging_potential_years=20,
+        tagline="La joya de la corona del Levante: terciopelo concentrado y estela interminable.",
+    ),
+    WineProfile(
+        id="juan-gil-etiqueta-plata",
+        name="Juan Gil Etiqueta Plata",
+        winery="Bodegas Juan Gil",
+        appellation="D.O. Jumilla",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=14.5,
+        serving_temp_c=16.0,
+        decant_minutes=15,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=8.2, acidity=6.0, tannins=7.8, fruit=8.5, oak=7.5),
+        tasting_notes="100% Monastrell de cepas viejas. Gran concentración de fruta madura, grosella roja, recuerdos a torrefacto y trago envolvente.",
+        latitude=38.5620,
+        longitude=-1.3050,
+        altitude_m=750,
+        soil_type="Franco-arenoso calizo",
+        climate="Mediterráneo seco",
+        aging_potential_years=6,
+        tagline="Monastrell goloso de viñas viejas con notas de ciruela pasa y roble tostado.",
     ),
 ]
 
@@ -298,22 +902,21 @@ CURATED_DISHES: list[Dish] = [
         category="Entrantes y Cuchara",
         description="Crema fría emulsionada de tomate maduro, pan de telera y aceite de oliva virgen extra picual.",
         target_sensory=SensoryRadar(
-            body=5.2, acidity=8.5, tannins=1.2, fruit=6.5, oak=2.0
-        ),
-        suggested_wine_type=WineType.FORTIFIED,
-    ),
-    Dish(
-        id="tartar-atun-almadraba",
-        name="Tartar de atún rojo de almadraba",
-        category="Pescados y Mariscos",
-        description="Ventresca y lomo de atún rojo cortado a cuchillo, aliñado con yuzu, sésamo tostado y aceite suave.",
-        target_sensory=SensoryRadar(
             body=5.8, acidity=8.2, tannins=1.5, fruit=8.0, oak=2.0
         ),
         suggested_wine_type=WineType.SPARKLING,
     ),
+    Dish(
+        id="ostras-gallegas",
+        name="Ostras planas de la Ría de Arousa al natural",
+        category="Pescados y Mariscos",
+        description="Ostra rizada fresca servida sobre hielo picado con salitre oceánico y acidez marina cortante.",
+        target_sensory=SensoryRadar(
+            body=4.0, acidity=9.5, tannins=1.0, fruit=7.0, oak=1.0
+        ),
+        suggested_wine_type=WineType.WHITE,
+    ),
 ]
-
 
 CLIMATE_MAP: dict[str, str] = {
     "D.O.Ca. Rioja": "Continental templado con influencia atlántica",
@@ -325,12 +928,41 @@ CLIMATE_MAP: dict[str, str] = {
     "D.O. Toro": "Continental árido de alta insolación",
     "D.O. Bierzo": "Microclima de transición atlántico-continental",
     "D.O. Corpinnat / Penedès": "Mediterráneo marítimo templado",
+    "D.O. Ribeira Sacra": "Atlántico de transición en cañones fluviales",
+    "D.O. Somontano": "Continental prepirenaico de alta luminosidad",
+    "D.O. Jumilla": "Mediterráneo seco y semiárido de altiplano",
 }
+
+
+_WINE_MIGRATION_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("latitude", "FLOAT DEFAULT 40.4168"),
+    ("longitude", "FLOAT DEFAULT -3.7038"),
+    ("altitude_m", "INTEGER DEFAULT 500"),
+    ("soil_type", "VARCHAR(128) DEFAULT 'Arcilloso-calcáreo'"),
+    ("climate", "VARCHAR(128) DEFAULT 'Continental'"),
+    ("aging_potential_years", "INTEGER DEFAULT 5"),
+    ("tagline", "VARCHAR(256) DEFAULT ''"),
+)
+
+
+def _ensure_wine_terroir_columns(db_engine: Engine) -> None:
+    """Add new terroir columns to existing SQLite wines table if missing."""
+    inspector = inspect(db_engine)
+    if "wines" not in inspector.get_table_names():
+        return
+    existing = {col["name"] for col in inspector.get_columns("wines")}
+    with db_engine.begin() as conn:
+        for col_name, col_def in _WINE_MIGRATION_COLUMNS:
+            if col_name not in existing:
+                conn.execute(
+                    text(f"ALTER TABLE wines ADD COLUMN {col_name} {col_def}")
+                )  # nosec B608
 
 
 def init_db(db_engine: Engine, session_factory: sessionmaker[Session]) -> None:
     """Create database tables and seed missing curated wines and dishes."""
     Base.metadata.create_all(bind=db_engine)
+    _ensure_wine_terroir_columns(db_engine)
     with session_factory() as session:
         existing_wines = set(session.scalars(select(WineModel.id)).all())
         missing_wines = [
@@ -355,7 +987,6 @@ def init_db(db_engine: Engine, session_factory: sessionmaker[Session]) -> None:
 class SommelierEngine:
     """Core mathematical pairing engine and enological knowledge catalog."""
 
-    # Maximum possible distance in 5D space bounded within [1.0, 10.0]: sqrt(5 * 9^2) ≈ 20.12461
     MAX_EUCLIDEAN_DISTANCE: float = math.sqrt(5 * (9.0**2))
 
     def __init__(
@@ -452,26 +1083,19 @@ class SommelierEngine:
         if max_price is not None:
             stmt = stmt.where(WineModel.price_eur <= max_price)
         if q:
-            pattern = f"%{q.strip()}%"
+            search = f"%{q.strip()}%"
             stmt = stmt.where(
                 or_(
-                    WineModel.name.ilike(pattern),
-                    WineModel.winery.ilike(pattern),
-                    WineModel.appellation.ilike(pattern),
+                    WineModel.name.ilike(search),
+                    WineModel.winery.ilike(search),
+                    WineModel.appellation.ilike(search),
                 )
             )
-        stmt = stmt.offset(offset).limit(limit)
+        stmt = stmt.order_by(WineModel.price_eur.asc()).offset(offset).limit(limit)
+
         with session_factory() as session:
             rows = session.scalars(stmt).all()
             return [row.to_schema() for row in rows]
-
-    def get_wine_by_id(self, wine_id: str) -> WineProfile | None:
-        """Fetch a single wine by its unique slug identifier."""
-        if self._session_factory is not None:
-            with self._session_factory() as session:
-                row = session.get(WineModel, wine_id)
-                return row.to_schema() if row is not None else None
-        return self._wine_index.get(wine_id)
 
     def get_dishes(
         self,
@@ -480,7 +1104,7 @@ class SommelierEngine:
         limit: int = 100,
         offset: int = 0,
     ) -> list[Dish]:
-        """Return paginated dishes with optional category and search filtering."""
+        """Return cataloged dishes with optional category filtering and search."""
         if self._session_factory is not None:
             return self._get_dishes_db(
                 self._session_factory,
@@ -491,15 +1115,16 @@ class SommelierEngine:
             )
 
         query = q.lower().strip() if q else None
-        results: list[Dish] = []
-        for dish in self._dishes:
-            if category and category.lower() not in dish.category.lower():
-                continue
-            if query and (
-                query not in dish.name.lower() and query not in dish.description.lower()
-            ):
-                continue
-            results.append(dish)
+        results = [
+            dish
+            for dish in self._dishes
+            if (not category or dish.category.lower() == category.lower())
+            and (
+                not query
+                or query in dish.name.lower()
+                or query in dish.description.lower()
+            )
+        ]
         return results[offset : offset + limit]
 
     def _get_dishes_db(
@@ -515,28 +1140,37 @@ class SommelierEngine:
         if category:
             stmt = stmt.where(DishModel.category.ilike(f"%{category}%"))
         if q:
-            pattern = f"%{q.strip()}%"
+            search = f"%{q.strip()}%"
             stmt = stmt.where(
                 or_(
-                    DishModel.name.ilike(pattern),
-                    DishModel.description.ilike(pattern),
+                    DishModel.name.ilike(search),
+                    DishModel.description.ilike(search),
                 )
             )
-        stmt = stmt.offset(offset).limit(limit)
+        stmt = stmt.order_by(DishModel.name.asc()).offset(offset).limit(limit)
+
         with session_factory() as session:
             rows = session.scalars(stmt).all()
             return [row.to_schema() for row in rows]
 
+    def get_wine_by_id(self, wine_id: str) -> WineProfile | None:
+        """Look up a wine profile by its unique identifier slug."""
+        if self._session_factory is not None:
+            with self._session_factory() as session:
+                row = session.get(WineModel, wine_id)
+                return row.to_schema() if row else None
+        return self._wine_index.get(wine_id)
+
     def get_dish_by_id(self, dish_id: str) -> Dish | None:
-        """Fetch a single dish by its unique slug identifier."""
+        """Look up a dish by its unique identifier slug."""
         if self._session_factory is not None:
             with self._session_factory() as session:
                 row = session.get(DishModel, dish_id)
-                return row.to_schema() if row is not None else None
+                return row.to_schema() if row else None
         return self._dish_index.get(dish_id)
 
     def get_regions(self) -> list[RegionSummary]:
-        """Aggregate wine catalog by Designation of Origin (appellation)."""
+        """Return summary of all Appellations and their wine representation count."""
         if self._session_factory is not None:
             with self._session_factory() as session:
                 stmt = (
@@ -589,144 +1223,6 @@ class SommelierEngine:
         ratio = dist / cls.MAX_EUCLIDEAN_DISTANCE
         score = max(0.0, min(100.0, 100.0 * (1.0 - ratio)))
         return round(score, 1)
-
-    @classmethod
-    def _score_from_coords(
-        cls,
-        target: SensoryRadar,
-        body: float,
-        acidity: float,
-        tannins: float,
-        fruit: float,
-        oak: float,
-    ) -> float:
-        """Compute compatibility score directly from raw 5D coordinates."""
-        squared_diffs = (
-            (target.body - body) ** 2
-            + (target.acidity - acidity) ** 2
-            + (target.tannins - tannins) ** 2
-            + (target.fruit - fruit) ** 2
-            + (target.oak - oak) ** 2
-        )
-        ratio = math.sqrt(squared_diffs) / cls.MAX_EUCLIDEAN_DISTANCE
-        score = max(0.0, min(100.0, 100.0 * (1.0 - ratio)))
-        return round(score, 1)
-
-    def _top_wines_db(
-        self,
-        session_factory: sessionmaker[Session],
-        dish: Dish,
-        request: DishPairingRequest,
-    ) -> list[tuple[WineProfile, float]]:
-        """Pre-filter candidates in SQL and hydrate only the top 3 matches."""
-        cols = (
-            WineModel.id,
-            WineModel.price_eur,
-            WineModel.body,
-            WineModel.acidity,
-            WineModel.tannins,
-            WineModel.fruit,
-            WineModel.oak,
-        )
-        with session_factory() as session:
-            base_stmt = select(*cols).where(
-                WineModel.price_eur <= request.max_budget_eur
-            )
-            rows = (
-                session.execute(
-                    base_stmt.where(WineModel.wine_type == str(request.preferred_type))
-                ).all()
-                if request.preferred_type
-                else []
-            )
-            if not rows:
-                rows = session.execute(base_stmt).all()
-            if not rows:
-                raise ValueError(
-                    f"No wines found in cellar catalog within budget of "
-                    f"{request.max_budget_eur:.2f} €."
-                )
-
-            ranked = heapq.nsmallest(
-                3,
-                (
-                    (
-                        -self._score_from_coords(
-                            dish.target_sensory,
-                            row.body,
-                            row.acidity,
-                            row.tannins,
-                            row.fruit,
-                            row.oak,
-                        ),
-                        row.price_eur,
-                        row.id,
-                    )
-                    for row in rows
-                ),
-            )
-            top_ids = [wine_id for _, _, wine_id in ranked]
-            hydrated = {
-                w.id: w.to_schema()
-                for w in session.scalars(
-                    select(WineModel).where(WineModel.id.in_(top_ids))
-                ).all()
-            }
-            return [(hydrated[wine_id], -neg_score) for neg_score, _, wine_id in ranked]
-
-    def _select_candidates(self, request: DishPairingRequest) -> list[WineProfile]:
-        """Select candidate wines within budget, relaxing type filter if empty."""
-        within_budget = [
-            w for w in self._wines if w.price_eur <= request.max_budget_eur
-        ]
-        if request.preferred_type:
-            typed = [w for w in within_budget if w.wine_type == request.preferred_type]
-            if typed:
-                return typed
-        if not within_budget:
-            raise ValueError(
-                f"No wines found in cellar catalog within budget of "
-                f"{request.max_budget_eur:.2f} €."
-            )
-        return within_budget
-
-    def recommend_pairing(self, request: DishPairingRequest) -> PairingRecommendation:
-        """Calculate optimal wine pairing using multi-vector sensory distance."""
-        dish = self.get_dish_by_id(request.dish_id)
-        if not dish:
-            raise ValueError(f"Dish with id '{request.dish_id}' not found.")
-
-        if self._session_factory is not None:
-            top_matches = self._top_wines_db(self._session_factory, dish, request)
-        else:
-            candidates = self._select_candidates(request)
-            top_matches = heapq.nsmallest(
-                3,
-                (
-                    (
-                        wine,
-                        self.compute_compatibility_score(
-                            dish.target_sensory, wine.sensory
-                        ),
-                    )
-                    for wine in candidates
-                ),
-                key=lambda item: (-item[1], item[0].price_eur),
-            )
-
-        top_wine, top_score = top_matches[0]
-        alternatives = [wine for wine, _ in top_matches[1:3]]
-
-        explanation = self._generate_explanation(dish, top_wine, top_score)
-
-        return PairingRecommendation(
-            dish_name=dish.name,
-            compatibility_score=top_score,
-            primary_wine=top_wine,
-            alternative_wines=alternatives,
-            target_sensory=dish.target_sensory,
-            sommelier_explanation=explanation,
-        )
 
     @staticmethod
     def _describe_affinity_opening(score: float) -> str:
@@ -836,3 +1332,140 @@ class SommelierEngine:
             f"¿Por qué funciona? Porque {sensory_lesson}. "
             f"{service_lesson}"
         )
+
+    def recommend_pairing(self, request: DishPairingRequest) -> PairingRecommendation:
+        """Calculate sensory compatibility and return top-ranked pairings."""
+        dish = self.get_dish_by_id(request.dish_id)
+        if not dish:
+            raise ValueError(
+                f"Dish '{request.dish_id}' not found in gastronomic catalog."
+            )
+
+        candidate_wines = self.get_wines(
+            wine_type=request.preferred_type,
+            max_price=request.max_budget_eur,
+            limit=500,
+        )
+
+        if not candidate_wines and request.preferred_type is not None:
+            candidate_wines = self.get_wines(
+                max_price=request.max_budget_eur,
+                limit=500,
+            )
+
+        if not candidate_wines:
+            raise ValueError(
+                f"No wines found in cellar catalog within the budget of "
+                f"{request.max_budget_eur:.2f} EUR."
+            )
+
+        scored_wines: list[tuple[float, WineProfile]] = []
+        for wine in candidate_wines:
+            score = self.compute_compatibility_score(dish.target_sensory, wine.sensory)
+            scored_wines.append((score, wine))
+
+        top_candidates = heapq.nlargest(3, scored_wines, key=lambda item: item[0])
+        best_score, best_wine = top_candidates[0]
+        alternatives = [wine for _, wine in top_candidates[1:]]
+
+        explanation = self._generate_explanation(
+            dish=dish,
+            wine=best_wine,
+            score=best_score,
+        )
+
+        return PairingRecommendation(
+            dish_name=dish.name,
+            compatibility_score=best_score,
+            primary_wine=best_wine,
+            alternative_wines=alternatives,
+            target_sensory=dish.target_sensory,
+            sommelier_explanation=explanation,
+        )
+
+    # --- Personal Cellar CRUD Operations ---
+
+    def add_to_cellar(
+        self, payload: CellarCreateRequest, user_id: str = "sommelier"
+    ) -> CellarItem:
+        """Add bottles of a wine to the personal cellar."""
+        if self._session_factory is None:
+            raise RuntimeError(
+                "Database session factory required for cellar operations."
+            )
+
+        wine = self.get_wine_by_id(payload.wine_id)
+        if not wine:
+            raise ValueError(f"Wine '{payload.wine_id}' does not exist in catalog.")
+
+        with self._session_factory() as session:
+            stmt = select(CellarItemModel).where(
+                CellarItemModel.user_id == user_id,
+                CellarItemModel.wine_id == payload.wine_id,
+            )
+            existing = session.scalars(stmt).first()
+
+            if existing:
+                existing.quantity += payload.quantity
+                if payload.purchase_price_eur > 0:
+                    existing.purchase_price_eur = payload.purchase_price_eur
+                if payload.storage_location:
+                    existing.storage_location = payload.storage_location
+                if payload.notes:
+                    existing.notes = payload.notes
+                session.commit()
+                return existing.to_schema(wine_profile=wine)
+
+            new_item = CellarItemModel(
+                id=str(uuid.uuid4())[:8],
+                wine_id=payload.wine_id,
+                user_id=user_id,
+                quantity=payload.quantity,
+                purchase_price_eur=payload.purchase_price_eur or wine.price_eur,
+                storage_location=payload.storage_location,
+                notes=payload.notes,
+            )
+            session.add(new_item)
+            session.commit()
+            return new_item.to_schema(wine_profile=wine)
+
+    def get_cellar(self, user_id: str = "sommelier") -> list[CellarItem]:
+        """Return all bottles stored in user's personal cellar."""
+        if self._session_factory is None:
+            return []
+
+        with self._session_factory() as session:
+            stmt = select(CellarItemModel).where(CellarItemModel.user_id == user_id)
+            rows = session.scalars(stmt).all()
+            results: list[CellarItem] = []
+            for row in rows:
+                wine = self.get_wine_by_id(row.wine_id)
+                results.append(row.to_schema(wine_profile=wine))
+            return results
+
+    def remove_from_cellar(
+        self, item_id: str, user_id: str = "sommelier", quantity: int = 1
+    ) -> dict[str, Any]:
+        """Decrement bottle count or remove cellar record if empty."""
+        if self._session_factory is None:
+            raise RuntimeError(
+                "Database session factory required for cellar operations."
+            )
+
+        with self._session_factory() as session:
+            row = session.get(CellarItemModel, item_id)
+            if not row or row.user_id != user_id:
+                raise ValueError(f"Cellar record '{item_id}' not found.")
+
+            if row.quantity <= quantity:
+                session.delete(row)
+                session.commit()
+                return {"status": "deleted", "item_id": item_id, "remaining": 0}
+
+            row.quantity -= quantity
+            session.commit()
+            return {
+                "status": "decremented",
+                "item_id": item_id,
+                "remaining": row.quantity,
+            }

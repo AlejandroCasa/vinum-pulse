@@ -1,5 +1,6 @@
 """Database configuration, SQLAlchemy engine, and session management."""
 
+from collections.abc import Generator
 from typing import Any
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,3 +36,12 @@ engine = create_db_engine(settings.database_url)
 SessionLocal = sessionmaker(
     bind=engine, autoflush=False, expire_on_commit=False, class_=Session
 )
+
+
+def get_db() -> Generator[Session, None, None]:
+    """Provide a transactional database session scope for FastAPI dependencies."""
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

@@ -113,6 +113,38 @@ class WineProfile(BaseModel):
         min_length=1,
         description="Sommelier tasting notes and aromatic descriptors.",
     )
+    latitude: float = Field(
+        default=40.4168,
+        description="Winery geographic latitude.",
+    )
+    longitude: float = Field(
+        default=-3.7038,
+        description="Winery geographic longitude.",
+    )
+    altitude_m: int = Field(
+        default=500,
+        ge=0,
+        le=3000,
+        description="Vineyard altitude above sea level in meters.",
+    )
+    soil_type: str = Field(
+        default="Arcilloso-calcáreo",
+        description="Terroir soil classification.",
+    )
+    climate: str = Field(
+        default="Continental",
+        description="Regional meso-climate type.",
+    )
+    aging_potential_years: int = Field(
+        default=5,
+        ge=1,
+        le=100,
+        description="Estimated aging potential in cellar.",
+    )
+    tagline: str = Field(
+        default="",
+        description="Concise sensory hook for consumers.",
+    )
 
 
 class Dish(BaseModel):
@@ -204,3 +236,34 @@ class RegionSummary(BaseModel):
     appellation: str = Field(..., description="Name of the Appellation / D.O.")
     wine_count: int = Field(..., ge=0, description="Number of cataloged wines.")
     climate_type: str = Field(..., description="Regional climate classification.")
+
+
+class CellarItem(BaseModel):
+    """Personal cellar bottle entry."""
+
+    id: str = Field(..., description="Unique cellar item record ID.")
+    wine_id: str = Field(..., description="Referenced wine identifier slug.")
+    user_id: str = Field(default="sommelier", description="Cellar owner identifier.")
+    quantity: int = Field(ge=1, default=1, description="Number of bottles in stock.")
+    purchase_price_eur: float = Field(
+        ge=0.0, default=0.0, description="Acquisition cost."
+    )
+    storage_location: str = Field(
+        default="Bodega Principal", description="Storage location."
+    )
+    notes: str = Field(default="", description="Personal sommelier notes.")
+    wine: WineProfile | None = Field(
+        default=None, description="Detailed wine profile if resolved."
+    )
+
+
+class CellarCreateRequest(BaseModel):
+    """Payload to add or update bottles in personal cellar."""
+
+    wine_id: str = Field(..., min_length=1, description="Wine identifier slug.")
+    quantity: int = Field(default=1, ge=1, description="Number of bottles.")
+    purchase_price_eur: float = Field(
+        default=0.0, ge=0.0, description="Purchase price."
+    )
+    storage_location: str = Field(default="Bodega Principal", description="Location.")
+    notes: str = Field(default="", description="Personal notes.")
