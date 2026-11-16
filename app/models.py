@@ -1,10 +1,10 @@
-"""SQLAlchemy ORM models for persistent wines and gastronomic dishes."""
+"""SQLAlchemy ORM models for persistent wines, dishes, and personal cellar."""
 
 from sqlalchemy import Float, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
-from app.schemas import Dish, SensoryRadar, WineProfile, WineType
+from app.schemas import CellarItem, Dish, SensoryRadar, WineProfile, WineType
 
 
 class WineModel(Base):
@@ -32,6 +32,13 @@ class WineModel(Base):
     fruit: Mapped[float] = mapped_column(Float)
     oak: Mapped[float] = mapped_column(Float)
     tasting_notes: Mapped[str] = mapped_column(Text)
+    latitude: Mapped[float] = mapped_column(Float, default=40.4168)
+    longitude: Mapped[float] = mapped_column(Float, default=-3.7038)
+    altitude_m: Mapped[int] = mapped_column(Integer, default=500)
+    soil_type: Mapped[str] = mapped_column(String(128), default="Arcilloso-calcáreo")
+    climate: Mapped[str] = mapped_column(String(128), default="Continental")
+    aging_potential_years: Mapped[int] = mapped_column(Integer, default=5)
+    tagline: Mapped[str] = mapped_column(String(256), default="")
 
     def to_schema(self) -> WineProfile:
         """Convert ORM row into a Pydantic WineProfile contract."""
@@ -54,6 +61,13 @@ class WineModel(Base):
                 oak=self.oak,
             ),
             tasting_notes=self.tasting_notes,
+            latitude=self.latitude,
+            longitude=self.longitude,
+            altitude_m=self.altitude_m,
+            soil_type=self.soil_type,
+            climate=self.climate,
+            aging_potential_years=self.aging_potential_years,
+            tagline=self.tagline,
         )
 
     @classmethod
@@ -76,6 +90,13 @@ class WineModel(Base):
             fruit=wine.sensory.fruit,
             oak=wine.sensory.oak,
             tasting_notes=wine.tasting_notes,
+            latitude=wine.latitude,
+            longitude=wine.longitude,
+            altitude_m=wine.altitude_m,
+            soil_type=wine.soil_type,
+            climate=wine.climate,
+            aging_potential_years=wine.aging_potential_years,
+            tagline=wine.tagline,
         )
 
 
@@ -134,4 +155,34 @@ class DishModel(Base):
                 if dish.suggested_wine_type is not None
                 else None
             ),
+        )
+
+
+class CellarItemModel(Base):
+    """Persistent stock of wines in personal cellar."""
+
+    __tablename__ = "cellar_items"
+    __table_args__ = (Index("ix_cellar_user_wine", "user_id", "wine_id"),)
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    wine_id: Mapped[str] = mapped_column(String(128), index=True)
+    user_id: Mapped[str] = mapped_column(String(128), default="sommelier", index=True)
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    purchase_price_eur: Mapped[float] = mapped_column(Float, default=0.0)
+    storage_location: Mapped[str] = mapped_column(
+        String(128), default="Bodega Principal"
+    )
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+    def to_schema(self, wine_profile: WineProfile | None = None) -> CellarItem:
+        """Convert ORM row to Pydantic CellarItem."""
+        return CellarItem(
+            id=self.id,
+            wine_id=self.wine_id,
+            user_id=self.user_id,
+            quantity=self.quantity,
+            purchase_price_eur=self.purchase_price_eur,
+            storage_location=self.storage_location,
+            notes=self.notes,
+            wine=wine_profile,
         )

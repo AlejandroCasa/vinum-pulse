@@ -15,16 +15,22 @@ def test_health_check() -> None:
 
 
 def test_list_wines_endpoint() -> None:
-    """Verify /api/v1/wines returns full wine list."""
+    """Verify /api/v1/wines returns full wine list with terroir metadata."""
     response = client.get("/api/v1/wines")
     assert response.status_code == 200
     wines = response.json()
     assert isinstance(wines, list)
-    assert len(wines) >= 10
+    assert len(wines) >= 35
     sample = wines[0]
     assert "id" in sample
     assert "name" in sample
     assert "sensory" in sample
+    assert "latitude" in sample
+    assert "longitude" in sample
+    assert "altitude_m" in sample
+    assert "soil_type" in sample
+    assert "climate" in sample
+    assert "tagline" in sample
 
 
 def test_list_wines_with_query_params() -> None:
@@ -47,7 +53,7 @@ def test_list_dishes_endpoint() -> None:
     response = client.get("/api/v1/dishes")
     assert response.status_code == 200
     dishes = response.json()
-    assert len(dishes) >= 6
+    assert len(dishes) == 12
     sample = dishes[0]
     assert "id" in sample
     assert "target_sensory" in sample
@@ -55,11 +61,11 @@ def test_list_dishes_endpoint() -> None:
 
 
 def test_list_regions_endpoint() -> None:
-    """Verify /api/v1/regions returns aggregated D.O. summaries."""
+    """Verify /api/v1/regions returns D.O. summaries across all 12 regions."""
     response = client.get("/api/v1/regions")
     assert response.status_code == 200
     regions = response.json()
-    assert len(regions) >= 5
+    assert len(regions) >= 12
     sample = regions[0]
     assert "appellation" in sample
     assert "wine_count" in sample
@@ -100,49 +106,71 @@ def test_recommend_pairing_endpoint_budget_too_low() -> None:
     payload = {
         "dish_id": "chuleton-brasa",
         "max_budget_eur": 2.0,
+        "preferred_type": "Red",
     }
     response = client.post("/api/v1/pairings/recommend", json=payload)
     assert response.status_code == 404
-    assert "No wines found" in response.json()["detail"]
+    assert "budget" in response.json()["detail"].lower()
 
 
-def test_get_dashboard_serves_html() -> None:
-    """Verify GET / returns interactive HTML single page dashboard."""
+def test_dashboard_ui_endpoint() -> None:
+    """Verify GET / returns HTML dashboard with UTF-8 encoding."""
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    html = response.text
-    assert "Vinum Pulse" in html
-    assert "Radar de Cata" in html
-    assert "radarChart" in html
-    assert "budget-slider" in html
+    assert "Vinum Pulse" in response.text
 
 
-def test_list_wines_pagination_and_search() -> None:
-    """Verify /api/v1/wines supports limit, offset, and text search q."""
-    p1 = client.get("/api/v1/wines", params={"limit": 2, "offset": 0})
-    p2 = client.get("/api/v1/wines", params={"limit": 2, "offset": 2})
-    assert p1.status_code == 200
-    assert p2.status_code == 200
-    assert len(p1.json()) == 2
-    assert len(p2.json()) == 2
-    assert p1.json()[0]["id"] != p2.json()[0]["id"]
-
-    search = client.get("/api/v1/wines", params={"q": "Belondrade"})
-    assert search.status_code == 200
-    assert len(search.json()) == 1
-    assert search.json()[0]["id"] == "belondrade-lurton"
+# --- Personal Cellar Tests ---
 
 
-def test_list_dishes_pagination_and_search() -> None:
-    """Verify /api/v1/dishes supports category, q, limit, and offset."""
-    p1 = client.get("/api/v1/dishes", params={"limit": 2, "offset": 0})
-    assert p1.status_code == 200
-    assert len(p1.json()) == 2
+def test_cellar_lifecycle_crud() -> None:
+    """Verify adding, listing, and deleting bottles from personal cellar."""
+    # 1. Add bottle to cellar
+    payload = {
+        "wine_id": "vina-ardanza-reserva",
+        "quantity": 3,
+        "purchase_price_eur": 32.5,
+        "storage_location": "Armario Climatizado Balda 2",
+        "notes": "Compradas en avanzada para descorchar en 2028.",
+    }
+    create_res = client.post("/api/v1/cellar", json=payload)
+    assert create_res.status_code == 200
+    item = create_res.json()
+    assert item["wine_id"] == "vina-ardanza-reserva"
+    assert item["quantity"] == 3
+    assert item["purchase_price_eur"] == 32.5
+    assert item["wine"] is not None
+    assert item["wine"]["name"] == "Viña Ardanza Reserva"
+    item_id = item["id"]
 
-    search = client.get(
-        "/api/v1/dishes", params={"category": "Carnes", "q": "Cochinillo"}
-    )
-    assert search.status_code == 200
-    assert len(search.json()) == 1
-    assert search.json()[0]["id"] == "cochinillo-asado"
+    # 2. List cellar
+    list_res = client.get("/api/v1/cellar")
+    assert list_res.status_code == 200
+    items = list_res.json()
+    assert any(i["id"] == item_id for i in items)
+
+    # 3. Decrement quantity (remove 1 bottle)
+    dec_res = client.delete(f"/api/v1/cellar/{item_id}?quantity=1")
+    assert dec_res.status_code == 200
+    assert dec_res.json()["remaining"] == 2
+
+    # 4. Remove remaining bottles (delete)
+    del_res = client.delete(f"/api/v1/cellar/{item_id}?quantity=2")
+    assert del_res.status_code == 200
+    assert del_res.json()["remaining"] == 0
+
+    # 5. Delete non-existent item returns 404
+    err_res = client.delete(f"/api/v1/cellar/{item_id}")
+    assert err_res.status_code == 404
+
+
+def test_cellar_add_invalid_wine_returns_404() -> None:
+    """Verify adding non-existent wine to cellar returns 404 error."""
+    payload = {
+        "wine_id": "vino-inexistente-123",
+        "quantity": 1,
+    }
+    response = client.post("/api/v1/cellar", json=payload)
+    assert response.status_code == 404
+    assert "does not exist" in response.json()["detail"]

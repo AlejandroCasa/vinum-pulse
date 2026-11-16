@@ -1,10 +1,14 @@
 """FastAPI web service, Sommelier API, and interactive sensory dashboard."""
 
+from typing import Any
+
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 
 from app.database import SessionLocal, engine
 from app.schemas import (
+    CellarCreateRequest,
+    CellarItem,
     Dish,
     DishPairingRequest,
     PairingRecommendation,
@@ -19,9 +23,9 @@ app = FastAPI(
     title="Vinum Pulse",
     description=(
         "Real-Time Sommelier Radar, Gastronomic Pairing Engine, and "
-        "Cellar Analytics Platform."
+        "Cellar Analytics Platform with SQLite persistence."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
 
 init_db(engine, SessionLocal)
@@ -106,6 +110,47 @@ def recommend_pairing(request: DishPairingRequest) -> PairingRecommendation:
         )
     try:
         return sommelier.recommend_pairing(request)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+# --- Personal Cellar Endpoints ---
+
+
+@app.get("/api/v1/cellar", response_model=list[CellarItem], tags=["Cellar"])
+def list_cellar(user_id: str = "sommelier") -> list[CellarItem]:
+    """Retrieve all bottles stored in user's personal cellar."""
+    return sommelier.get_cellar(user_id=user_id)
+
+
+@app.post("/api/v1/cellar", response_model=CellarItem, tags=["Cellar"])
+def add_to_cellar(
+    payload: CellarCreateRequest, user_id: str = "sommelier"
+) -> CellarItem:
+    """Add or increment wine bottles in personal cellar."""
+    try:
+        return sommelier.add_to_cellar(payload=payload, user_id=user_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@app.delete("/api/v1/cellar/{item_id}", tags=["Cellar"])
+def remove_from_cellar(
+    item_id: str,
+    quantity: int = Query(default=1, ge=1),
+    user_id: str = "sommelier",
+) -> dict[str, Any]:
+    """Decrement stock or delete bottle record from personal cellar."""
+    try:
+        return sommelier.remove_from_cellar(
+            item_id=item_id, user_id=user_id, quantity=quantity
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
