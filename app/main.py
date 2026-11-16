@@ -11,6 +11,8 @@ from app.schemas import (
     CellarItem,
     Dish,
     DishPairingRequest,
+    EveningMenuPlan,
+    EveningMenuRequest,
     GeoJsonFeatureCollection,
     PairingRecommendation,
     RegionSummary,
@@ -129,6 +131,22 @@ def recommend_pairing(request: DishPairingRequest) -> PairingRecommendation:
         )
     try:
         return sommelier.recommend_pairing(request)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@app.post(
+    "/api/v1/pairings/menu-plan",
+    response_model=EveningMenuPlan,
+    tags=["Pairing Engine"],
+)
+def plan_evening_menu(request: EveningMenuRequest) -> EveningMenuPlan:
+    """Design a 3-course evening wine progression within a global budget."""
+    try:
+        return sommelier.plan_evening_menu(request)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

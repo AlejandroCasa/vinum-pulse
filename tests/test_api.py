@@ -49,15 +49,17 @@ def test_list_wines_with_query_params() -> None:
 
 
 def test_list_dishes_endpoint() -> None:
-    """Verify /api/v1/dishes returns gastronomic catalog with 5D targets."""
+    """Verify /api/v1/dishes returns gastronomic catalog across 9 sections."""
     response = client.get("/api/v1/dishes")
     assert response.status_code == 200
     dishes = response.json()
-    assert len(dishes) == 12
+    assert len(dishes) == 22
     sample = dishes[0]
     assert "id" in sample
     assert "target_sensory" in sample
     assert "body" in sample["target_sensory"]
+    categories = {d["category"] for d in dishes}
+    assert len(categories) == 9
 
 
 def test_list_regions_endpoint() -> None:
@@ -249,3 +251,72 @@ def test_cellar_add_invalid_wine_returns_404() -> None:
     response = client.post("/api/v1/cellar", json=payload)
     assert response.status_code == 404
     assert "does not exist" in response.json()["detail"]
+
+
+# --- Evening Menu Planner & W47 UX Tests ---
+
+
+def test_plan_evening_menu_endpoint_success() -> None:
+    """Verify POST /api/v1/pairings/menu-plan returns 3-course sommelier progression."""
+    payload = {
+        "occasion": "Cena Romántica",
+        "starter_dish_id": "salmorejo-cordobes",
+        "main_dish_id": "chuleton-brasa",
+        "dessert_dish_id": "tarta-queso-idiazabal",
+        "total_budget_eur": 120.0,
+    }
+    response = client.post("/api/v1/pairings/menu-plan", json=payload)
+    assert response.status_code == 200
+    plan = response.json()
+    assert plan["occasion"] == "Cena Romántica"
+    assert plan["total_budget_eur"] == 120.0
+    assert plan["total_price_eur"] <= 120.0
+    assert len(plan["courses"]) == 3
+    wine_ids = {c["wine"]["id"] for c in plan["courses"]}
+    assert len(wine_ids) == 3
+    for course in plan["courses"]:
+        assert "fridge_tip" in course
+        assert "uncork_tip" in course
+        assert course["vintage_semaphore"] in ("green", "amber", "gold")
+        assert len(course["vintage_status_label"]) > 5
+
+
+def test_plan_evening_menu_endpoint_errors() -> None:
+    """Verify POST /api/v1/pairings/menu-plan returns 404 on invalid input."""
+    bad_dish_payload = {
+        "occasion": "Barbacoa con Amigos",
+        "starter_dish_id": "plato-inexistente",
+        "main_dish_id": "chuleton-brasa",
+        "dessert_dish_id": "queso-manchego",
+        "total_budget_eur": 100.0,
+    }
+    res_dish = client.post("/api/v1/pairings/menu-plan", json=bad_dish_payload)
+    assert res_dish.status_code == 404
+    assert "not found" in res_dish.json()["detail"]
+
+    low_budget_payload = {
+        "occasion": "Barbacoa con Amigos",
+        "starter_dish_id": "salmorejo-cordobes",
+        "main_dish_id": "chuleton-brasa",
+        "dessert_dish_id": "queso-manchego",
+        "total_budget_eur": 10.0,
+    }
+    res_budget = client.post("/api/v1/pairings/menu-plan", json=low_budget_payload)
+    assert res_budget.status_code == 404
+    assert "insufficient" in res_budget.json()["detail"].lower()
+
+
+def test_dashboard_ui_w47_components() -> None:
+    """Verify GET / embeds accordion, bottle SVG, tagline, and evening planner."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+    assert 'id="active-dish-chip"' in html
+    assert 'id="res-tagline"' in html
+    assert 'id="btn-toggle-tasting-notes"' in html
+    assert 'id="res-bottle-visual"' in html
+    assert 'id="res-bottle-svg-container"' in html
+    assert 'id="evening-planner-section"' in html
+    assert 'id="printable-menu-card"' in html
+    assert "@media print" in html
+    assert "/api/v1/pairings/menu-plan" in html

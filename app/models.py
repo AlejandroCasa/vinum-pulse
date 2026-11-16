@@ -39,6 +39,9 @@ class WineModel(Base):
     climate: Mapped[str] = mapped_column(String(128), default="Continental")
     aging_potential_years: Mapped[int] = mapped_column(Integer, default=5)
     tagline: Mapped[str] = mapped_column(String(256), default="")
+    image_url: Mapped[str | None] = mapped_column(
+        String(512), nullable=True, default=None
+    )
 
     def to_schema(self) -> WineProfile:
         """Convert ORM row into a Pydantic WineProfile contract."""
@@ -68,6 +71,7 @@ class WineModel(Base):
             climate=self.climate,
             aging_potential_years=self.aging_potential_years,
             tagline=self.tagline,
+            image_url=self.image_url,
         )
 
     @classmethod
@@ -97,6 +101,7 @@ class WineModel(Base):
             climate=wine.climate,
             aging_potential_years=wine.aging_potential_years,
             tagline=wine.tagline,
+            image_url=wine.image_url,
         )
 
 

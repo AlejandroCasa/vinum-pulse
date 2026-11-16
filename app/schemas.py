@@ -3,7 +3,7 @@
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class WineType(StrEnum):
@@ -146,6 +146,33 @@ class WineProfile(BaseModel):
         default="",
         description="Concise sensory hook for consumers.",
     )
+    bottle_silhouette: str = Field(
+        default="",
+        description=(
+            "Editorial SVG bottle silhouette style "
+            "(Bordelesa, Borgoña, Jerezana, Espumosa)."
+        ),
+    )
+    image_url: str | None = Field(
+        default=None,
+        description="Optional URL to bottle or label image.",
+    )
+
+    @model_validator(mode="after")
+    def populate_silhouette(self) -> "WineProfile":
+        """Auto-populate bottle silhouette geometry if not provided explicitly."""
+        if not self.bottle_silhouette:
+            if self.wine_type == WineType.FORTIFIED or "Jerez" in self.appellation:
+                self.bottle_silhouette = "Jerezana"
+            elif self.wine_type == WineType.SPARKLING:
+                self.bottle_silhouette = "Espumosa"
+            elif self.glass_type == "Borgoña" or any(
+                k in self.appellation for k in ("Bierzo", "Ribeira Sacra", "Priorat")
+            ):
+                self.bottle_silhouette = "Borgoña"
+            else:
+                self.bottle_silhouette = "Bordelesa"
+        return self
 
 
 class Dish(BaseModel):
@@ -318,3 +345,99 @@ class CellarCreateRequest(BaseModel):
     )
     storage_location: str = Field(default="Bodega Principal", description="Location.")
     notes: str = Field(default="", description="Personal notes.")
+
+
+class EveningCoursePairing(BaseModel):
+    """Pairing details for a single course in the evening progression."""
+
+    course_number: int = Field(
+        ..., ge=1, le=3, description="Course sequence index (1, 2, 3)."
+    )
+    course_title: str = Field(..., description="Human-readable course stage label.")
+    dish: Dish = Field(..., description="Selected dish for this course.")
+    wine: WineProfile = Field(..., description="Recommended wine for this course.")
+    compatibility_score: float = Field(
+        ...,
+        ge=0.0,
+        le=100.0,
+        description="Sensory compatibility score (0-100%).",
+    )
+    fridge_tip: str = Field(
+        ...,
+        description="Plain-language refrigerator/temperature timing tip without jargon.",
+    )
+    uncork_tip: str = Field(
+        ...,
+        description="Plain-language uncorking and aeration tip without jargon.",
+    )
+    vintage_semaphore: str = Field(
+        ..., description="Semaphore status code: 'green', 'amber', or 'gold'."
+    )
+    vintage_status_label: str = Field(
+        ..., description="Plain-language vintage peak window label."
+    )
+    sommelier_note: str = Field(
+        ..., description="Course-specific pairing and progression note."
+    )
+
+
+class EveningMenuRequest(BaseModel):
+    """Incoming request to plan a 3-course evening wine progression within a budget."""
+
+    occasion: str = Field(
+        default="Cena Romántica",
+        min_length=1,
+        description=(
+            "Selected occasion (e.g. Cena Romántica, Barbacoa con Amigos, "
+            "Comida Familiar de Domingo, Tardeo & Tapas Gourmet)."
+        ),
+    )
+    starter_dish_id: str = Field(
+        ..., min_length=1, description="First course (starter/tapas) dish ID."
+    )
+    main_dish_id: str = Field(
+        ..., min_length=1, description="Second course (main) dish ID."
+    )
+    dessert_dish_id: str = Field(
+        ..., min_length=1, description="Third course (dessert/cheese) dish ID."
+    )
+    total_budget_eur: float = Field(
+        default=90.0,
+        gt=0.0,
+        description="Total combined budget in EUR for the 3-bottle evening plan.",
+    )
+
+
+class EveningMenuPlan(BaseModel):
+    """Structured 3-course evening sommelier menu plan and tasting guide."""
+
+    occasion: str = Field(..., description="Evening occasion title.")
+    occasion_ambience_tip: str = Field(
+        ..., description="Sommelier atmosphere and glassware preparation tip."
+    )
+    total_budget_eur: float = Field(..., description="Requested total budget in EUR.")
+    total_price_eur: float = Field(
+        ..., description="Actual combined price of the 3 recommended bottles."
+    )
+    average_compatibility_score: float = Field(
+        ..., description="Average sensory affinity across the 3 courses."
+    )
+    progression_valid: bool = Field(
+        default=True,
+        description=(
+            "Whether the 3-course selection satisfies light-to-full "
+            "sommelier progression."
+        ),
+    )
+    progression_summary: str = Field(
+        ..., description="Plain-language explanation of the 3-wine sensory progression."
+    )
+    courses: list[EveningCoursePairing] = Field(
+        ...,
+        min_length=3,
+        max_length=3,
+        description="Ordered 3-course wine progression.",
+    )
+    printable_card_title: str = Field(
+        ..., description="Editorial title for the printable guest menu card."
+    )
