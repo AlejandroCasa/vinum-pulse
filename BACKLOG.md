@@ -4,8 +4,7 @@ This file tracks prioritized engineering improvements, features, and completed m
 
 ## 🎯 Prioritized Backlog (Sprint 2026-W47)
 
-### P0 — Dynamic Cartographic Atlas & Visual Experience
-- [ ] **[dynamic-map]** Interactive Cartographic Atlas of Spanish Wine Regions & Wineries (`GET /` + Leaflet.js / GeoJSON): Build an interactive map of Spain displaying D.O. zones and winery markers; clicking a region or winery reveals its Terroir Card (climate, soil, altitude, signature grape) and dynamically filters the catalog and 5D Sensory Radar (Impact: 5/5 | Effort: M)
+### P0 — High-Impact Gastronomic & Event Planning
 - [ ] **[event-planner]** Interactive Evening & 3-Course Menu Sommelier Planner (`POST /api/v1/pairings/menu-plan`): Let any user select an occasion (*Cena Romántica*, *Barbacoa con Amigos*, *Comida Familiar*, *Tapas Gourmet*) and a 3-course menu (*Entrante + Principal + Postre/Queso*) within a target budget. Automatically compute optimal wine serving progression (light-to-full structure), plain-language serving tips (*"45 min in fridge before serving"*, *"Uncork 30 min early"*), vintage peak status semaphore, and a **Printable Sommelier Menu Card** for guests (Impact: 5/5 | Effort: M)
 
 ### P1 — UX Polish & Component Interactions
@@ -19,6 +18,8 @@ This file tracks prioritized engineering improvements, features, and completed m
 ---
 
 ## ✅ Completed Milestones
+- [x] **[dynamic-map]** Interactive Cartographic Atlas of Spanish Wine Regions & Wineries (`GET /` + Leaflet.js / GeoJSON): Built interactive cartographic atlas covering all 12 Spanish D.O. regions and 36 curated wineries with RFC 7946 GeoJSON endpoint (`GET /api/v1/atlas/geojson`), dual-mode rendering (Leaflet.js CartoDB Positron + deterministic offline SVG fallback), interactive Terroir & Climate card, D.O. quick-select navigation, and live sensory 5D radar projection (`[[ADR-0017-vinum-pulse-dynamic-cartographic-atlas]]`) — Branch: `feat/dynamic-cartographic-atlas-and-ci` (`2026-11-16`)
+- [x] **[ci-phase-3-4]** Complete 4-Phase Universal CI/CD Standard in `.github/workflows/ci.yml`: Implemented Phase 1 (QA/Typing), Phase 2 (SAST/SCA/Complexity), Phase 3 (Semgrep, Mutmut, Fuzzing Smoke, Docker + Trivy Image), and Phase 4 (Gitleaks, Syft CycloneDX SBOM, Non-root Container Policy, Schemathesis Contract Validation) (`[[ADR-0017-vinum-pulse-dynamic-cartographic-atlas]]`) — Branch: `feat/dynamic-cartographic-atlas-and-ci` (`2026-11-16`)
 - [x] **[database/cellar]** SQLite Persistence Engine, 36-Wine Expanded 12 D.O. Catalog & Personal Cellar: Implemented SQLite + SQLAlchemy 2.0 ORM (`app/database.py`, `app/models.py`), expanded catalog across all 12 Spanish D.O.s with geolocation coordinates (`lat`, `lon`), terroir metadata, and personal cellar CRUD (`GET/POST/DELETE /api/v1/cellar`) (`[[ADR-0014-vinum-pulse-sqlite-sqlalchemy-cellar]]`) — Branch: `feat/database-cellar-persistence` (`2026-11-16`)
 - [x] **[ci/shift-left]** Shift-Left Pre-Commit & Commitizen Integration: Added `.pre-commit-config.yaml` with offline deterministic hooks and `commitizen` conventional commit validation (`[[ADR-0010-vinum-pulse-cicd-devsecops-suite]]`) — Branch: `chore/pre-commit-commitizen` (`2026-11-13`)
 - [x] **[cicd/qa]** Full CI/CD & Quality Gate Suite: Integrated `black`, `isort`, `ruff`, `mypy` (strict), `bandit` (SAST), `pip-audit` (SCA), `radon` & `xenon` (complexity rank `A`), and `pytest-cov` (`>=85%`) with modular UI decoupling (`app/ui.py`) and automated GitHub Actions pipeline (`.github/workflows/ci.yml`) (`[[ADR-0010-vinum-pulse-cicd-devsecops-suite]]`) — Branch: `feat/cicd-devsecops-pipeline` (`2026-11-08`)
