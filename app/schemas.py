@@ -1,6 +1,7 @@
 """Pydantic data models and enums for Vinum Pulse sommelier pairing engine."""
 
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -236,6 +237,56 @@ class RegionSummary(BaseModel):
     appellation: str = Field(..., description="Name of the Appellation / D.O.")
     wine_count: int = Field(..., ge=0, description="Number of cataloged wines.")
     climate_type: str = Field(..., description="Regional climate classification.")
+    autonomous_community: str | None = Field(
+        default=None, description="Autonomous Community in Spain."
+    )
+    signature_grape: str | None = Field(
+        default=None, description="Signature grape variety."
+    )
+    soil: str | None = Field(
+        default=None, description="Characteristic soil composition."
+    )
+    coordinates: list[float] | None = Field(
+        default=None, description="Regional centroid coordinates [lon, lat]."
+    )
+
+
+class GeoJsonGeometry(BaseModel):
+    """GeoJSON geometry definition for Point coordinates."""
+
+    type: str = Field(default="Point", description="GeoJSON geometry type.")
+    coordinates: list[float] = Field(
+        ...,
+        min_length=2,
+        max_length=2,
+        description="GeoJSON coordinates array [longitude, latitude].",
+    )
+
+
+class GeoJsonFeature(BaseModel):
+    """GeoJSON feature with properties and point geometry."""
+
+    type: str = Field(default="Feature", description="GeoJSON Feature type.")
+    id: str = Field(..., min_length=1, description="Feature identifier slug.")
+    geometry: GeoJsonGeometry = Field(
+        ..., description="Geometry coordinate definition."
+    )
+    properties: dict[str, Any] = Field(
+        ..., description="Feature properties and terroir attributes."
+    )
+
+
+class GeoJsonFeatureCollection(BaseModel):
+    """RFC 7946 GeoJSON FeatureCollection container."""
+
+    type: str = Field(
+        default="FeatureCollection",
+        description="GeoJSON FeatureCollection type.",
+    )
+    features: list[GeoJsonFeature] = Field(
+        default_factory=list,
+        description="Collection of cartographic features.",
+    )
 
 
 class CellarItem(BaseModel):

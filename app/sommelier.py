@@ -15,6 +15,9 @@ from app.schemas import (
     CellarItem,
     Dish,
     DishPairingRequest,
+    GeoJsonFeature,
+    GeoJsonFeatureCollection,
+    GeoJsonGeometry,
     PairingRecommendation,
     RegionSummary,
     SensoryRadar,
@@ -933,6 +936,200 @@ CLIMATE_MAP: dict[str, str] = {
     "D.O. Jumilla": "Mediterráneo seco y semiárido de altiplano",
 }
 
+DO_METADATA: dict[str, dict[str, Any]] = {
+    "D.O.Ca. Rioja": {
+        "appellation": "D.O.Ca. Rioja",
+        "autonomous_community": "La Rioja / País Vasco / Navarra",
+        "climate": "Continental templado con influencia atlántica",
+        "soil": "Arcilloso-calcáreo, arcillo-ferroso y aluvial",
+        "altitude_range_m": "450 - 700 m",
+        "signature_grape": "Tempranillo, Garnacha, Graciano, Mazuelo",
+        "center": [-2.6000, 42.4500],
+        "description": "Cuna histórica del roble y la elegancia clásica de guarda española.",
+    },
+    "D.O. Ribera del Duero": {
+        "appellation": "D.O. Ribera del Duero",
+        "autonomous_community": "Castilla y León",
+        "climate": "Mediterráneo continental extremo",
+        "soil": "Calizo, margas y terrazas aluviales",
+        "altitude_range_m": "750 - 850 m",
+        "signature_grape": "Tempranillo (Tinta del País / Tinto Fino)",
+        "center": [-4.1000, 41.6200],
+        "description": "Terruño de meseta de oscilación térmica extrema y taninos colosales.",
+    },
+    "D.O.Q. Priorat": {
+        "appellation": "D.O.Q. Priorat",
+        "autonomous_community": "Cataluña",
+        "climate": "Mediterráneo de montaña sobre pizarra licorella",
+        "soil": "Pizarra licorella desmenuzada y escarpada",
+        "altitude_range_m": "400 - 520 m",
+        "signature_grape": "Garnacha Tinta, Cariñena (Mazuelo)",
+        "center": [0.8250, 41.1920],
+        "description": "Bancales heroicos de mineralidad telúrica y concentración casi mística.",
+    },
+    "D.O. Rías Baixas": {
+        "appellation": "D.O. Rías Baixas",
+        "autonomous_community": "Galicia",
+        "climate": "Atlántico húmedo y salino",
+        "soil": "Xabre granítico descompuesto y arenoso",
+        "altitude_range_m": "35 - 60 m",
+        "signature_grape": "Albariño",
+        "center": [-8.7400, 42.5200],
+        "description": "Salinidad oceánica, acidez eléctrica y albariños de longevidad insospechada.",
+    },
+    "D.O. Bierzo": {
+        "appellation": "D.O. Bierzo",
+        "autonomous_community": "Castilla y León",
+        "climate": "Microclima de transición atlántico-continental",
+        "soil": "Pizarra ferrosa y laderas de cuarcita",
+        "altitude_range_m": "550 - 720 m",
+        "signature_grape": "Mencía, Godello",
+        "center": [-6.7800, 42.5800],
+        "description": "Fragancia de violetas, frescura silvestre y finura atlántica.",
+    },
+    "D.O. Toro": {
+        "appellation": "D.O. Toro",
+        "autonomous_community": "Castilla y León",
+        "climate": "Continental árido de alta insolación",
+        "soil": "Arenoso-pedregoso sobre arcilla profunda",
+        "altitude_range_m": "700 - 750 m",
+        "signature_grape": "Tinta de Toro (Tempranillo autóctono)",
+        "center": [-5.3900, 41.5000],
+        "description": "Viñedos centenarios prefiloxéricos de potencia tánica y fruta negra.",
+    },
+    "D.O. Jerez-Xérès-Sherry": {
+        "appellation": "D.O. Jerez-Xérès-Sherry",
+        "autonomous_community": "Andalucía",
+        "climate": "Mediterráneo cálido con albariza oceánica",
+        "soil": "Albariza blanca deslumbrante rica en carbonato cálcico",
+        "altitude_range_m": "45 - 60 m",
+        "signature_grape": "Palomino Fino, Pedro Ximénez",
+        "center": [-6.1350, 36.6850],
+        "description": "Crianza biológica bajo velo de flor y soleras centenarias de oxidación noble.",
+    },
+    "D.O. Rueda": {
+        "appellation": "D.O. Rueda",
+        "autonomous_community": "Castilla y León",
+        "climate": "Continental de meseta",
+        "soil": "Cascajoso pedregoso con canto rodado sobre arcilla",
+        "altitude_range_m": "730 - 880 m",
+        "signature_grape": "Verdejo",
+        "center": [-4.9500, 41.3850],
+        "description": "Aromas herbáceos, hinojo silvestre y verdejos de guarda con barrica.",
+    },
+    "D.O. Corpinnat / Penedès": {
+        "appellation": "D.O. Corpinnat / Penedès",
+        "autonomous_community": "Cataluña",
+        "climate": "Mediterráneo marítimo templado",
+        "soil": "Arcillo-calcáreo con limo y calizo fósil",
+        "altitude_range_m": "220 - 340 m",
+        "signature_grape": "Xarel·lo, Macabeo, Parellada",
+        "center": [1.7900, 41.4200],
+        "description": "Espumosos gastronómicos de larguísima rima y viticultura ecológica rigurosa.",
+    },
+    "D.O. Ribeira Sacra": {
+        "appellation": "D.O. Ribeira Sacra",
+        "autonomous_community": "Galicia",
+        "climate": "Atlántico de transición en cañones fluviales",
+        "soil": "Pizarra, esquisto y granito en bancales de vértigo",
+        "altitude_range_m": "420 - 600 m",
+        "signature_grape": "Mencía, Brancellao, Merenzao",
+        "center": [-7.3500, 42.4000],
+        "description": "Viticultura heroica en pendientes imposibles sobre los ríos Sil y Miño.",
+    },
+    "D.O. Somontano": {
+        "appellation": "D.O. Somontano",
+        "autonomous_community": "Aragón",
+        "climate": "Continental prepirenaico de alta luminosidad",
+        "soil": "Franco-calizo, arenisca y terrazas aluviales",
+        "altitude_range_m": "520 - 600 m",
+        "signature_grape": "Cabernet Sauvignon, Merlot, Tempranillo, Moristel",
+        "center": [0.1450, 42.0450],
+        "description": "Ensamblajes de autor al abrigo de las cumbres pirenaicas.",
+    },
+    "D.O. Jumilla": {
+        "appellation": "D.O. Jumilla",
+        "autonomous_community": "Región de Murcia",
+        "climate": "Mediterráneo seco y semiárido de altiplano",
+        "soil": "Calizo pedregoso sobre tosca dura",
+        "altitude_range_m": "750 - 820 m",
+        "signature_grape": "Monastrell",
+        "center": [-1.3250, 38.5000],
+        "description": "Reino absoluto de la Monastrell sobre suelos áridos de altitud y sol implacable.",
+    },
+}
+
+
+def _build_winery_feature(wine: WineProfile) -> GeoJsonFeature:
+    """Build a GeoJSON Point feature for a curated winery label."""
+    do_meta = DO_METADATA.get(wine.appellation, {})
+    community = str(do_meta.get("autonomous_community", "España"))
+    grape = str(do_meta.get("signature_grape", "Varietal autóctono"))
+    summary = (
+        f"{wine.winery} ({wine.appellation}) — {wine.name} ({wine.vintage}), "
+        f"{wine.price_eur:.2f} €. {wine.tagline}"
+    )
+    return GeoJsonFeature(
+        id=wine.id,
+        geometry=GeoJsonGeometry(coordinates=[wine.longitude, wine.latitude]),
+        properties={
+            "feature_type": "winery",
+            "id": wine.id,
+            "name": wine.name,
+            "winery": wine.winery,
+            "appellation": wine.appellation,
+            "autonomous_community": community,
+            "climate": wine.climate,
+            "soil": wine.soil_type,
+            "altitude_m": wine.altitude_m,
+            "signature_grape": grape,
+            "winery_catalog_summary": summary,
+            "price_eur": wine.price_eur,
+            "vintage": wine.vintage,
+            "wine_type": str(wine.wine_type.value),
+            "serving_temp_c": wine.serving_temp_c,
+            "decant_minutes": wine.decant_minutes,
+            "glass_type": wine.glass_type,
+            "tasting_notes": wine.tasting_notes,
+            "tagline": wine.tagline,
+            "sensory": wine.sensory.model_dump(),
+        },
+    )
+
+
+def _build_region_feature(
+    do_name: str, meta: dict[str, Any], wines: list[WineProfile]
+) -> GeoJsonFeature:
+    """Build a GeoJSON Point feature for a Designation of Origin centroid."""
+    avg_alt = int(sum(w.altitude_m for w in wines) / len(wines)) if wines else 500
+    bodegas = sorted(list(dict.fromkeys(w.winery for w in wines)))
+    summary = (
+        f"{do_name} ({len(wines)} vinos catalogados, {len(bodegas)} bodegas): "
+        f"{', '.join(bodegas)}"
+    )
+    slug = do_name.lower().replace(" ", "-").replace(".", "").replace("/", "-").strip()
+    center: list[float] = list(meta.get("center", [-3.7, 40.4]))
+    return GeoJsonFeature(
+        id=f"region-{slug}",
+        geometry=GeoJsonGeometry(coordinates=[center[0], center[1]]),
+        properties={
+            "feature_type": "region",
+            "id": f"region-{slug}",
+            "name": do_name,
+            "appellation": do_name,
+            "autonomous_community": str(meta.get("autonomous_community", "España")),
+            "climate": str(meta.get("climate", "Mediterráneo continental")),
+            "soil": str(meta.get("soil", "Calizo y arcilloso")),
+            "altitude_m": avg_alt,
+            "altitude_range_m": str(meta.get("altitude_range_m", "400 - 800 m")),
+            "signature_grape": str(meta.get("signature_grape", "Varietal autóctono")),
+            "description": str(meta.get("description", "")),
+            "winery_count": len(bodegas),
+            "wineries": bodegas,
+            "winery_catalog_summary": summary,
+        },
+    )
+
 
 _WINE_MIGRATION_COLUMNS: tuple[tuple[str, str], ...] = (
     ("latitude", "FLOAT DEFAULT 40.4168"),
@@ -954,9 +1151,8 @@ def _ensure_wine_terroir_columns(db_engine: Engine) -> None:
     with db_engine.begin() as conn:
         for col_name, col_def in _WINE_MIGRATION_COLUMNS:
             if col_name not in existing:
-                conn.execute(
-                    text(f"ALTER TABLE wines ADD COLUMN {col_name} {col_def}")
-                )  # nosec B608
+                stmt_sql = f"ALTER TABLE wines ADD COLUMN {col_name} {col_def}"
+                conn.execute(text(stmt_sql))  # nosec B608
 
 
 def init_db(db_engine: Engine, session_factory: sessionmaker[Session]) -> None:
@@ -1186,6 +1382,12 @@ class SommelierEngine:
                         climate_type=CLIMATE_MAP.get(
                             app, "Mediterráneo continental característico"
                         ),
+                        autonomous_community=DO_METADATA.get(app, {}).get(
+                            "autonomous_community"
+                        ),
+                        signature_grape=DO_METADATA.get(app, {}).get("signature_grape"),
+                        soil=DO_METADATA.get(app, {}).get("soil"),
+                        coordinates=DO_METADATA.get(app, {}).get("center"),
                     )
                     for app, count in rows
                 ]
@@ -1197,10 +1399,35 @@ class SommelierEngine:
         summaries: list[RegionSummary] = []
         for app, count in counts.items():
             climate = CLIMATE_MAP.get(app, "Mediterráneo continental característico")
+            meta = DO_METADATA.get(app, {})
             summaries.append(
-                RegionSummary(appellation=app, wine_count=count, climate_type=climate)
+                RegionSummary(
+                    appellation=app,
+                    wine_count=count,
+                    climate_type=climate,
+                    autonomous_community=meta.get("autonomous_community"),
+                    signature_grape=meta.get("signature_grape"),
+                    soil=meta.get("soil"),
+                    coordinates=meta.get("center"),
+                )
             )
         return sorted(summaries, key=lambda r: r.wine_count, reverse=True)
+
+    def get_atlas_geojson(self, layer: str = "wineries") -> GeoJsonFeatureCollection:
+        """Return GeoJSON FeatureCollection of Spanish wine regions and/or wineries."""
+        features: list[GeoJsonFeature] = []
+        wines = self.get_wines(limit=100)
+
+        if layer in ("wineries", "all"):
+            for wine in wines:
+                features.append(_build_winery_feature(wine))
+
+        if layer in ("regions", "all"):
+            for do_name, meta in DO_METADATA.items():
+                do_wines = [w for w in wines if w.appellation == do_name]
+                features.append(_build_region_feature(do_name, meta, do_wines))
+
+        return GeoJsonFeatureCollection(features=features)
 
     @classmethod
     def compute_distance(cls, a: SensoryRadar, b: SensoryRadar) -> float:

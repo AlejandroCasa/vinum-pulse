@@ -11,6 +11,7 @@ from app.schemas import (
     CellarItem,
     Dish,
     DishPairingRequest,
+    GeoJsonFeatureCollection,
     PairingRecommendation,
     RegionSummary,
     WineProfile,
@@ -93,6 +94,24 @@ def list_dishes(
 def list_regions() -> list[RegionSummary]:
     """Return list of featured Spanish wine regions and wine counts."""
     return sommelier.get_regions()
+
+
+@app.get(
+    "/api/v1/atlas/geojson",
+    response_model=GeoJsonFeatureCollection,
+    tags=["Atlas"],
+)
+def get_atlas_geojson(
+    layer: str = Query(
+        default="wineries",
+        description=(
+            "Feature layer: 'wineries' (36 curated wineries across 12 D.O.s), "
+            "'regions' (12 D.O. region centroids), or 'all' (both)."
+        ),
+    ),
+) -> GeoJsonFeatureCollection:
+    """Return deterministic GeoJSON FeatureCollection of wine regions/wineries."""
+    return sommelier.get_atlas_geojson(layer=layer)
 
 
 @app.post(

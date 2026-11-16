@@ -121,6 +121,81 @@ def test_dashboard_ui_endpoint() -> None:
     assert "Vinum Pulse" in response.text
 
 
+def test_atlas_geojson_endpoint_wineries() -> None:
+    """Verify /api/v1/atlas/geojson returns valid GeoJSON for 36 wineries."""
+    response = client.get("/api/v1/atlas/geojson")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["type"] == "FeatureCollection"
+    features = data["features"]
+    assert len(features) == 36
+
+    # Verify all 12 D.O.s are represented
+    appellations = {f["properties"]["appellation"] for f in features}
+    assert len(appellations) == 12
+    assert "D.O.Ca. Rioja" in appellations
+    assert "D.O. Ribera del Duero" in appellations
+    assert "D.O.Q. Priorat" in appellations
+    assert "D.O. Rías Baixas" in appellations
+
+    # Validate GeoJSON schema, coordinates and terroir properties
+    for feat in features:
+        assert feat["type"] == "Feature"
+        assert feat["geometry"]["type"] == "Point"
+        coords = feat["geometry"]["coordinates"]
+        assert len(coords) == 2
+        lon, lat = coords
+        assert -10.0 <= lon <= 5.0
+        assert 35.0 <= lat <= 45.0
+        p = feat["properties"]
+        assert p["feature_type"] == "winery"
+        assert "winery" in p
+        assert "name" in p
+        assert "appellation" in p
+        assert "autonomous_community" in p
+        assert "climate" in p
+        assert "soil" in p
+        assert "altitude_m" in p
+        assert "signature_grape" in p
+        assert "winery_catalog_summary" in p
+        assert "sensory" in p
+
+
+def test_atlas_geojson_endpoint_layers() -> None:
+    """Verify /api/v1/atlas/geojson layers param (regions and all)."""
+    # Regions layer
+    reg_res = client.get("/api/v1/atlas/geojson", params={"layer": "regions"})
+    assert reg_res.status_code == 200
+    reg_data = reg_res.json()
+    assert reg_data["type"] == "FeatureCollection"
+    assert len(reg_data["features"]) == 12
+    for feat in reg_data["features"]:
+        assert feat["properties"]["feature_type"] == "region"
+        assert "wineries" in feat["properties"]
+        assert "winery_count" in feat["properties"]
+
+    # All layer
+    all_res = client.get("/api/v1/atlas/geojson", params={"layer": "all"})
+    assert all_res.status_code == 200
+    all_data = all_res.json()
+    assert len(all_data["features"]) == 48
+
+
+def test_dashboard_ui_atlas_integration() -> None:
+    """Verify GET / dashboard embeds Leaflet and Atlas cartographic elements."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+    assert "leaflet.css" in html
+    assert "leaflet.js" in html
+    assert "Atlas Cartográfico de Terroirs" in html
+    assert 'id="atlas-map"' in html
+    assert 'id="atlas-svg-fallback"' in html
+    assert 'id="terroir-card"' in html
+    assert 'id="do-pills-bar"' in html
+    assert "/api/v1/atlas/geojson" in html
+
+
 # --- Personal Cellar Tests ---
 
 

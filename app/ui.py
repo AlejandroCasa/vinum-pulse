@@ -11,6 +11,8 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
         tailwind.config = {
             theme: {
@@ -64,6 +66,22 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         .style-tab {
             transition: color 180ms var(--ease-bistro), border-color 180ms var(--ease-bistro);
         }
+        .do-pill {
+            transition: all 180ms var(--ease-bistro);
+            border: 1px solid rgba(35, 27, 22, 0.14);
+            background-color: #EFE7D6;
+            color: #6A5A4F;
+        }
+        .do-pill:hover {
+            border-color: #6B1D28;
+            color: #231B16;
+        }
+        .do-pill.is-active {
+            background-color: #6B1D28;
+            border-color: #6B1D28;
+            color: #F7F2E8;
+            font-weight: 500;
+        }
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
@@ -86,6 +104,46 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             outline-offset: 3px;
         }
         .tabular-nums { font-variant-numeric: tabular-nums; }
+
+        /* Leaflet custom styling */
+        .leaflet-container {
+            background: #FAF6EE !important;
+            font-family: "Work Sans", sans-serif;
+        }
+        .leaflet-popup-content-wrapper {
+            background: #FAF6EE !important;
+            color: #231B16 !important;
+            border: 1px solid rgba(107, 29, 40, 0.3) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 4px 12px rgba(35, 27, 22, 0.15) !important;
+            padding: 2px !important;
+        }
+        .leaflet-popup-tip {
+            background: #FAF6EE !important;
+        }
+        .custom-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #6B1D28;
+            border: 2px solid #FAF6EE;
+            box-shadow: 0 2px 6px rgba(35, 27, 22, 0.35);
+            cursor: pointer;
+            transition: transform 150ms ease;
+        }
+        .custom-pin:hover {
+            transform: scale(1.25);
+            background: #9C6F38;
+        }
+        .custom-pin-inner {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #F7F2E8;
+        }
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased text-espresso">
@@ -104,12 +162,125 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         </p>
     </header>
 
-    <main class="max-w-5xl mx-auto px-6 sm:px-10 pb-16 space-y-10">
+    <main class="max-w-5xl mx-auto px-6 sm:px-10 pb-16 space-y-12">
         <!-- Inline Error Banner -->
         <div id="error-banner" role="alert" class="hidden border border-bordeaux/30 bg-butter px-4 py-3 text-bordeaux text-sm flex items-center justify-between gap-4">
             <span id="error-message">No hay vinos disponibles con estos filtros.</span>
             <button type="button" onclick="document.getElementById('error-banner').classList.add('hidden')" class="text-xs font-mono underline underline-offset-4">Cerrar</button>
         </div>
+
+        <!-- Atlas Cartográfico de Terroirs & Bodegas D.O. -->
+        <section id="atlas-section" class="border-t border-espresso/15 pt-8 space-y-6">
+            <div class="flex flex-wrap items-baseline justify-between gap-4 border-b border-espresso/15 pb-4">
+                <div class="space-y-1">
+                    <div class="text-xs font-mono text-bordeaux uppercase tracking-wider flex items-center gap-2">
+                        <span class="inline-block w-2 h-2 rounded-full bg-bordeaux"></span>
+                        Geografía &amp; Terroir Peninsular
+                    </div>
+                    <h2 class="font-serif text-3xl sm:text-4xl text-espresso tracking-tight">
+                        Atlas Cartográfico de Terroirs &amp; Bodegas D.O.
+                    </h2>
+                    <p class="font-serif italic text-base text-walnut">
+                        12 Denominaciones de Origen y 36 bodegas emblemáticas de España
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="atlas-status-badge" class="px-3 py-1 text-xs font-mono rounded-full bg-butter text-bordeaux border border-bordeaux/20 tabular-nums">
+                        12 D.O. · 36 Bodegas
+                    </span>
+                </div>
+            </div>
+
+            <!-- D.O. Quick-Select Pill Bar -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center text-xs font-mono text-walnut">
+                    <span>Filtro por Denominación de Origen</span>
+                    <span id="atlas-selected-do-label" class="text-bordeaux font-medium">Todas las regiones</span>
+                </div>
+                <div id="do-pills-bar" class="flex flex-wrap gap-2 text-xs font-mono">
+                    <button type="button" data-do="" class="do-pill px-3 py-1.5 rounded-sm is-active">Todas (12 D.O.)</button>
+                    <!-- Remaining D.O. pills populated via JS -->
+                </div>
+            </div>
+
+            <!-- Map and Ficha Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Map Column (7 cols) -->
+                <div class="lg:col-span-7 space-y-3">
+                    <div class="relative w-full h-[460px] rounded border border-espresso/15 overflow-hidden bg-[#FAF6EE] shadow-xs">
+                        <div id="atlas-map" class="w-full h-full z-10"></div>
+                        <!-- Deterministic SVG Fallback -->
+                        <div id="atlas-svg-fallback" class="hidden absolute inset-0 w-full h-full bg-[#FAF6EE] p-4 flex flex-col justify-between z-20 overflow-hidden">
+                            <div class="flex justify-between items-center text-xs font-mono text-walnut border-b border-espresso/10 pb-2">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-sage"></span>
+                                    Atlas Cartográfico Vectorial (Modo Determinista)
+                                </span>
+                                <span class="text-bordeaux font-medium">12 D.O. / 36 Bodegas</span>
+                            </div>
+                            <div id="svg-map-canvas" class="w-full h-[380px] flex items-center justify-center">
+                                <!-- SVG map rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap justify-between items-center text-[11px] font-mono text-walnut px-1 gap-2">
+                        <span>Haga clic en un marcador para cargar su Ficha de Terroir y sincronizar el Radar Sensorial.</span>
+                        <span id="map-engine-label" class="text-sage">Cartografía: Leaflet.js</span>
+                    </div>
+                </div>
+
+                <!-- Ficha de Terroir & Clima (5 cols) -->
+                <aside id="terroir-card" class="lg:col-span-5 bg-butter/60 border border-espresso/12 rounded p-6 space-y-5">
+                    <div class="border-b border-espresso/15 pb-4 space-y-1.5">
+                        <div class="flex justify-between items-baseline">
+                            <span id="terroir-community" class="text-xs font-mono text-bordeaux uppercase tracking-wider">La Rioja</span>
+                            <span id="terroir-altitude" class="text-xs font-mono text-walnut tabular-nums">580 m altitud</span>
+                        </div>
+                        <h3 id="terroir-do-name" class="font-serif text-2xl sm:text-3xl text-espresso leading-tight">D.O.Ca. Rioja</h3>
+                        <p id="terroir-tagline" class="text-xs text-walnut leading-relaxed italic">
+                            Cuna histórica del roble y la elegancia clásica de guarda española.
+                        </p>
+                    </div>
+
+                    <dl class="space-y-2.5 text-xs">
+                        <div class="flex justify-between items-baseline border-b border-espresso/8 pb-1.5">
+                            <dt class="font-mono text-walnut">Clima</dt>
+                            <dd id="terroir-climate" class="font-medium text-espresso text-right max-w-[65%]">Continental templado</dd>
+                        </div>
+                        <div class="flex justify-between items-baseline border-b border-espresso/8 pb-1.5">
+                            <dt class="font-mono text-walnut">Suelo</dt>
+                            <dd id="terroir-soil" class="font-medium text-espresso text-right max-w-[65%]">Arcilloso-calcáreo</dd>
+                        </div>
+                        <div class="flex justify-between items-baseline border-b border-espresso/8 pb-1.5">
+                            <dt class="font-mono text-walnut">Uva Emblema</dt>
+                            <dd id="terroir-grape" class="font-medium text-bordeaux text-right max-w-[65%]">Tempranillo, Garnacha</dd>
+                        </div>
+                        <div class="flex justify-between items-baseline border-b border-espresso/8 pb-1.5">
+                            <dt class="font-mono text-walnut">Bodega Activa</dt>
+                            <dd id="terroir-winery" class="font-medium text-espresso text-right max-w-[65%]">La Rioja Alta, S.A.</dd>
+                        </div>
+                        <div class="flex justify-between items-baseline border-b border-espresso/8 pb-1.5">
+                            <dt class="font-mono text-walnut">Vino Destacado</dt>
+                            <dd id="terroir-wine-name" class="font-serif text-sm text-espresso text-right max-w-[65%]">Viña Ardanza Reserva</dd>
+                        </div>
+                    </dl>
+
+                    <div class="space-y-2 pt-1">
+                        <div class="flex justify-between items-baseline">
+                            <h4 class="font-serif italic text-sm text-walnut">Bodegas en esta D.O.</h4>
+                            <span id="terroir-winery-count" class="text-[11px] font-mono text-walnut">3 bodegas</span>
+                        </div>
+                        <div id="terroir-wineries-list" class="space-y-1.5 max-h-[150px] overflow-y-auto pr-1">
+                            <!-- Winery chips rendered via JS -->
+                        </div>
+                    </div>
+
+                    <button type="button" id="btn-sync-radar" class="w-full py-2.5 px-4 bg-bordeaux text-cream text-xs font-mono uppercase tracking-wider rounded hover:bg-bordeaux/90 transition shadow-xs">
+                        Proyectar Perfil en Radar 5D
+                    </button>
+                </aside>
+            </div>
+        </section>
 
         <!-- Menu Sheet Layout -->
         <div class="menu-frame py-10 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
@@ -222,24 +393,30 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </main>
 
     <footer class="max-w-5xl mx-auto px-6 sm:px-10 pb-10 text-center text-xs font-serif italic text-walnut">
-        Vinum Pulse · Radar de Cata y Maridaje Sensorial
+        Vinum Pulse · Radar de Cata y Maridaje Sensorial · Atlas Cartográfico de Terroirs
     </footer>
 
     <script>
         let allDishes = [];
+        let atlasFeatures = [];
         let selectedDishId = "chuleton-brasa";
+        let selectedDo = "";
+        let activeAtlasFeature = null;
         let preferredType = null;
         let radarChartInstance = null;
+        let leafletMap = null;
+        let mapMarkers = [];
 
         async function init() {
             try {
-                const res = await fetch("/api/v1/dishes");
-                allDishes = await res.json();
+                const resDishes = await fetch("/api/v1/dishes");
+                allDishes = await resDishes.json();
                 renderDishes();
                 setupEventListeners();
                 fetchRecommendation();
+                await initAtlas();
             } catch (err) {
-                showError("No se pudo cargar la carta de platos.");
+                showError("No se pudo inicializar la aplicación.");
                 console.error("Error al inicializar:", err);
             }
         }
@@ -304,6 +481,16 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     fetchRecommendation();
                 });
             });
+
+            const btnSync = document.getElementById("btn-sync-radar");
+            if (btnSync) {
+                btnSync.addEventListener("click", () => {
+                    if (activeAtlasFeature) {
+                        applyAtlasWineToRadar(activeAtlasFeature);
+                        document.getElementById("results-section").scrollIntoView({ behavior: "smooth" });
+                    }
+                });
+            }
         }
 
         async function fetchRecommendation() {
@@ -382,7 +569,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Vino Recomendado',
+                            label: 'Vino Seleccionado',
                             data: wineData,
                             backgroundColor: 'rgba(107, 29, 40, 0.14)',
                             borderColor: '#6B1D28',
@@ -426,6 +613,259 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     plugins: {
                         legend: { display: false }
                     }
+                }
+            });
+        }
+
+        /* --- Atlas Cartográfico de Terroirs & Bodegas D.O. --- */
+
+        async function initAtlas() {
+            try {
+                const res = await fetch("/api/v1/atlas/geojson?layer=wineries");
+                if (!res.ok) throw new Error("Fallo al obtener GeoJSON del Atlas.");
+                const data = await res.json();
+                atlasFeatures = data.features || [];
+
+                populateDoPills();
+
+                // Select default first feature
+                if (atlasFeatures.length > 0) {
+                    selectAtlasFeature(atlasFeatures[0]);
+                }
+
+                // Check Leaflet availability
+                if (typeof L !== "undefined" && typeof L.map === "function") {
+                    initLeafletAtlas();
+                } else {
+                    initSvgFallbackAtlas();
+                }
+            } catch (err) {
+                console.warn("Leaflet offline o error GeoJSON, activando fallback SVG:", err);
+                initSvgFallbackAtlas();
+            }
+        }
+
+        function populateDoPills() {
+            const container = document.getElementById("do-pills-bar");
+            const dos = [...new Set(atlasFeatures.map(f => f.properties.appellation))].sort();
+
+            dos.forEach(doName => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.setAttribute("data-do", doName);
+                btn.className = "do-pill px-3 py-1.5 rounded-sm";
+                btn.textContent = doName.replace("D.O.Ca. ", "").replace("D.O.Q. ", "").replace("D.O. ", "");
+                btn.addEventListener("click", () => filterAtlasByDo(doName, btn));
+                container.appendChild(btn);
+            });
+
+            const allBtn = container.querySelector('button[data-do=""]');
+            if (allBtn) {
+                allBtn.addEventListener("click", () => filterAtlasByDo("", allBtn));
+            }
+        }
+
+        function filterAtlasByDo(doName, activeBtn) {
+            selectedDo = doName;
+            document.querySelectorAll(".do-pill").forEach(b => b.classList.remove("is-active"));
+            if (activeBtn) activeBtn.classList.add("is-active");
+
+            document.getElementById("atlas-selected-do-label").textContent = doName || "Todas las regiones (12 D.O.)";
+
+            // If a specific D.O. is selected, focus its first winery
+            const matching = doName ? atlasFeatures.filter(f => f.properties.appellation === doName) : atlasFeatures;
+            if (matching.length > 0) {
+                selectAtlasFeature(matching[0]);
+            }
+
+            // Update Leaflet map view & markers
+            if (leafletMap) {
+                if (doName && matching.length > 0) {
+                    const first = matching[0];
+                    leafletMap.setView([first.geometry.coordinates[1], first.geometry.coordinates[0]], 8, { animate: true });
+                } else {
+                    leafletMap.setView([40.2, -3.7], 6, { animate: true });
+                }
+            }
+
+            // Update SVG fallback markers
+            highlightSvgMarkers(doName);
+        }
+
+        function selectAtlasFeature(feature) {
+            activeAtlasFeature = feature;
+            const p = feature.properties;
+
+            document.getElementById("terroir-community").textContent = p.autonomous_community || "España";
+            document.getElementById("terroir-altitude").textContent = `${p.altitude_m || 500} m altitud`;
+            document.getElementById("terroir-do-name").textContent = p.appellation;
+            document.getElementById("terroir-tagline").textContent = p.tagline || p.winery_catalog_summary || "";
+            document.getElementById("terroir-climate").textContent = p.climate;
+            document.getElementById("terroir-soil").textContent = p.soil;
+            document.getElementById("terroir-grape").textContent = p.signature_grape;
+            document.getElementById("terroir-winery").textContent = p.winery;
+            document.getElementById("terroir-wine-name").textContent = `${p.name} (${p.vintage})`;
+
+            // Populate wineries list for this D.O.
+            const listEl = document.getElementById("terroir-wineries-list");
+            const sameDoFeatures = atlasFeatures.filter(f => f.properties.appellation === p.appellation);
+            document.getElementById("terroir-winery-count").textContent = `${sameDoFeatures.length} bodegas`;
+
+            listEl.innerHTML = sameDoFeatures.map(f => {
+                const isCur = f.id === feature.id;
+                return `
+                    <button type="button" data-feat-id="${f.id}" class="w-full text-left p-2 rounded flex items-center justify-between gap-2 text-xs transition ${isCur ? 'bg-bordeaux text-cream font-medium' : 'bg-cream hover:bg-butter text-espresso'}">
+                        <span class="truncate">${f.properties.winery} · ${f.properties.name}</span>
+                        <span class="font-mono text-[11px] shrink-0">${f.properties.price_eur.toFixed(2)} €</span>
+                    </button>
+                `;
+            }).join("");
+
+            listEl.querySelectorAll("button").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const fid = btn.getAttribute("data-feat-id");
+                    const found = atlasFeatures.find(f => f.id === fid);
+                    if (found) {
+                        selectAtlasFeature(found);
+                        if (leafletMap) {
+                            leafletMap.setView([found.geometry.coordinates[1], found.geometry.coordinates[0]], 8, { animate: true });
+                        }
+                    }
+                });
+            });
+        }
+
+        function applyAtlasWineToRadar(feature) {
+            const p = feature.properties;
+            document.getElementById("res-name").textContent = p.name;
+            document.getElementById("res-winery").textContent = p.winery;
+            document.getElementById("res-appellation").textContent = p.appellation;
+            document.getElementById("res-vintage").textContent = `Añada ${p.vintage}`;
+            document.getElementById("res-price").textContent = `${p.price_eur.toFixed(2)} €`;
+            document.getElementById("res-score").textContent = "98.0%";
+            document.getElementById("res-temp").textContent = `${p.serving_temp_c || 16} °C`;
+            document.getElementById("res-decant").textContent = (p.decant_minutes && p.decant_minutes > 0) ? `${p.decant_minutes} min` : "Directo";
+            document.getElementById("res-glass").textContent = p.glass_type || "Burdeos";
+            document.getElementById("res-explanation").textContent = `Selección directa desde el Atlas de Terroirs: ${p.winery_catalog_summary}`;
+            document.getElementById("res-notes").textContent = `«${p.tasting_notes}»`;
+
+            const currentDish = allDishes.find(d => d.id === selectedDishId);
+            const targetSensory = currentDish ? currentDish.target_sensory : { body: 7.0, acidity: 7.0, tannins: 7.0, fruit: 7.0, oak: 7.0 };
+            renderRadarChart(targetSensory, p.sensory);
+        }
+
+        function initLeafletAtlas() {
+            try {
+                const mapEl = document.getElementById("atlas-map");
+                if (!mapEl) return;
+
+                leafletMap = L.map("atlas-map", {
+                    center: [40.2, -3.7],
+                    zoom: 6,
+                    zoomControl: true,
+                    attributionControl: false
+                });
+
+                L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+                    maxZoom: 18,
+                    subdomains: "abcd"
+                }).addTo(leafletMap);
+
+                const icon = L.divIcon({
+                    className: "custom-pin",
+                    html: '<div class="custom-pin-inner"></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                atlasFeatures.forEach(feat => {
+                    const coords = feat.geometry.coordinates;
+                    const marker = L.marker([coords[1], coords[0]], { icon: icon }).addTo(leafletMap);
+                    marker.bindTooltip(`<strong>${feat.properties.winery}</strong><br><span style="font-size:11px;color:#6A5A4F">${feat.properties.appellation} · ${feat.properties.name}</span>`, {
+                        direction: "top",
+                        offset: [0, -8]
+                    });
+                    marker.on("click", () => {
+                        selectAtlasFeature(feat);
+                    });
+                    mapMarkers.push({ marker, feature: feat });
+                });
+
+                document.getElementById("map-engine-label").textContent = "Cartografía: Leaflet.js (CartoDB Positron)";
+            } catch (err) {
+                console.error("Leaflet init error, switching to SVG fallback:", err);
+                initSvgFallbackAtlas();
+            }
+        }
+
+        function initSvgFallbackAtlas() {
+            const mapDiv = document.getElementById("atlas-map");
+            const fallbackDiv = document.getElementById("atlas-svg-fallback");
+            const canvas = document.getElementById("svg-map-canvas");
+            if (mapDiv) mapDiv.classList.add("hidden");
+            if (fallbackDiv) fallbackDiv.classList.remove("hidden");
+            document.getElementById("map-engine-label").textContent = "Cartografía: SVG Determinista (Modo Offline)";
+
+            // Build deterministic SVG canvas for Spain
+            // Lon range: [-9.5, 3.5] -> width 680
+            // Lat range: [36.0, 44.0] -> height 360
+            const svgW = 680;
+            const svgH = 340;
+
+            function lonToX(lon) {
+                return ((lon - (-9.5)) / (3.5 - (-9.5))) * (svgW - 80) + 40;
+            }
+            function latToY(lat) {
+                return ((44.0 - lat) / (44.0 - 36.0)) * (svgH - 60) + 30;
+            }
+
+            let svgContent = `
+                <svg viewBox="0 0 ${svgW} ${svgH}" class="w-full h-full select-none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Stylized Iberian Peninsula Boundary -->
+                    <path d="M 60 70 Q 180 40 320 50 Q 500 50 560 90 L 590 140 Q 580 200 540 260 Q 480 320 380 330 Q 280 330 180 320 Q 90 300 70 230 Q 50 150 60 70 Z" fill="#EFE7D6" stroke="rgba(35, 27, 22, 0.2)" stroke-width="1.5" stroke-dasharray="3 3"/>
+                    <!-- Regional Reference Lines -->
+                    <path d="M 120 70 Q 280 80 500 100" fill="none" stroke="rgba(107, 29, 40, 0.12)" stroke-width="1"/>
+                    <path d="M 100 160 Q 300 170 540 180" fill="none" stroke="rgba(107, 29, 40, 0.12)" stroke-width="1"/>
+            `;
+
+            atlasFeatures.forEach(feat => {
+                const coords = feat.geometry.coordinates;
+                const x = lonToX(coords[0]);
+                const y = latToY(coords[1]);
+                svgContent += `
+                    <g class="svg-pin cursor-pointer group" data-feat-id="${feat.id}" data-do="${feat.properties.appellation}" transform="translate(${x}, ${y})">
+                        <circle r="7" fill="#6B1D28" stroke="#FAF6EE" stroke-width="1.5" class="transition-all duration-150 hover:r-9 hover:fill-[#9C6F38]"/>
+                        <circle r="2" fill="#FAF6EE"/>
+                        <title>${feat.properties.winery} (${feat.properties.appellation}) — ${feat.properties.name}</title>
+                    </g>
+                `;
+            });
+
+            svgContent += `</svg>`;
+            canvas.innerHTML = svgContent;
+
+            canvas.querySelectorAll(".svg-pin").forEach(pin => {
+                pin.addEventListener("click", () => {
+                    const fid = pin.getAttribute("data-feat-id");
+                    const found = atlasFeatures.find(f => f.id === fid);
+                    if (found) selectAtlasFeature(found);
+                });
+            });
+        }
+
+        function highlightSvgMarkers(doName) {
+            const canvas = document.getElementById("svg-map-canvas");
+            if (!canvas) return;
+            canvas.querySelectorAll(".svg-pin").forEach(pin => {
+                const pinDo = pin.getAttribute("data-do");
+                const circle = pin.querySelector("circle");
+                if (!circle) return;
+                if (!doName || pinDo === doName) {
+                    circle.setAttribute("fill", "#6B1D28");
+                    circle.setAttribute("opacity", "1.0");
+                } else {
+                    circle.setAttribute("fill", "#6A5A4F");
+                    circle.setAttribute("opacity", "0.35");
                 }
             });
         }

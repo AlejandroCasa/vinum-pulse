@@ -273,3 +273,27 @@ def test_db_backed_engine_pagination_search_and_pairing() -> None:
         db_sommelier.recommend_pairing(
             DishPairingRequest(dish_id="chuleton-brasa", max_budget_eur=1.0)
         )
+
+
+def test_atlas_geojson_generation() -> None:
+    """Verify SommelierEngine.get_atlas_geojson produces valid RFC 7946 GeoJSON collections."""
+    engine = SommelierEngine()
+
+    # Wineries layer
+    wineries_fc = engine.get_atlas_geojson(layer="wineries")
+    assert wineries_fc.type == "FeatureCollection"
+    assert len(wineries_fc.features) == 36
+    all_appellations = {f.properties["appellation"] for f in wineries_fc.features}
+    assert len(all_appellations) == 12
+
+    # Regions layer
+    regions_fc = engine.get_atlas_geojson(layer="regions")
+    assert regions_fc.type == "FeatureCollection"
+    assert len(regions_fc.features) == 12
+    for feat in regions_fc.features:
+        assert feat.properties["feature_type"] == "region"
+        assert feat.properties["winery_count"] >= 1
+
+    # All layer
+    all_fc = engine.get_atlas_geojson(layer="all")
+    assert len(all_fc.features) == 48
