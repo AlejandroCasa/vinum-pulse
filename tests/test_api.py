@@ -320,3 +320,76 @@ def test_dashboard_ui_w47_components() -> None:
     assert 'id="printable-menu-card"' in html
     assert "@media print" in html
     assert "/api/v1/pairings/menu-plan" in html
+
+
+def test_dashboard_ui_tabbed_workspace_navigation() -> None:
+    """Verify GET / renders sticky header KPIs and 4-tab SPA workspace."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    assert 'id="app-header"' in html
+    assert 'id="global-kpis"' in html
+    assert 'id="kpi-wines-count"' in html
+    assert 'id="kpi-regions-count"' in html
+    assert 'id="kpi-cellar-pill"' in html
+
+    assert 'id="workspace-tablist"' in html
+    assert 'role="tablist"' in html
+    for tab_id in ("atlas", "carte", "veladas", "bodega"):
+        assert f'id="tab-btn-{tab_id}"' in html
+        assert f'aria-controls="panel-{tab_id}"' in html
+        assert f'id="panel-{tab_id}"' in html
+        assert f'aria-labelledby="tab-btn-{tab_id}"' in html
+    assert html.count('role="tab"') >= 4
+    assert html.count('role="tabpanel"') == 4
+
+
+def test_dashboard_ui_deep_linking_and_canvas_lifecycle() -> None:
+    """Verify URL hash deep linking, keyboard nav, and map/radar resize lifecycle."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    assert 'const VALID_TABS = ["atlas", "carte", "veladas", "bodega"]' in html
+    assert "function switchTab(tabId, updateHash = true)" in html
+    assert 'window.addEventListener("hashchange"' in html
+    assert "resolveTabFromHash" in html
+    assert "atlasMap.invalidateSize()" in html
+    assert "radarChart.resize()" in html
+    assert "ArrowRight" in html
+    assert "ArrowLeft" in html
+
+
+def test_dashboard_ui_contextual_bridges_and_cellar_workspace() -> None:
+    """Verify contextual cross-tab bridges, catalog filters, toast, and cellar UI."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    # Atlas layer toggles & integrated 5D radar
+    assert 'id="atlas-layer-bar"' in html
+    assert 'data-layer="wineries"' in html
+    assert 'data-layer="regions"' in html
+    assert 'data-layer="all"' in html
+    assert 'id="atlas-radar-panel"' in html
+    assert 'id="atlasRadarChart"' in html
+
+    # Contextual bridges across Atlas, La Carte, Veladas, and Mi Bodega
+    assert 'id="btn-atlas-to-carte"' in html
+    assert 'id="btn-atlas-to-bodega"' in html
+    assert 'id="btn-pairing-add-cellar"' in html
+    assert 'id="btn-pairing-plan-velada"' in html
+    assert 'id="btn-pairing-view-atlas"' in html
+    assert 'id="btn-add-trio-cellar"' in html
+
+    # Searchable catalog, progression curve, cellar analytics/CRUD & toast container
+    assert 'id="catalog-search-input"' in html
+    assert 'id="catalog-do-filter"' in html
+    assert 'id="catalog-wines-grid"' in html
+    assert 'id="progressionChart"' in html
+    assert 'id="cellar-analytics-grid"' in html
+    assert 'id="cellar-add-form"' in html
+    assert 'id="cellar-inventory-list"' in html
+    assert 'id="toast-container"' in html
+    assert "showToast(" in html
