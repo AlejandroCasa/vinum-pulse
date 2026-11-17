@@ -78,10 +78,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             background-color: #EFE7D6;
             padding-left: 0.75rem;
         }
-        .style-tab, .catalog-type-pill, .atlas-layer-btn, .cellar-filter-btn {
+        .style-tab, .catalog-type-pill, .atlas-layer-btn, .atlas-basemap-btn, .cellar-filter-btn {
             transition: all 180ms var(--ease-bistro);
         }
-        .atlas-layer-btn.is-active, .catalog-type-pill.is-active, .cellar-filter-btn.is-active {
+        .atlas-layer-btn.is-active, .atlas-basemap-btn.is-active, .catalog-type-pill.is-active, .cellar-filter-btn.is-active {
             background-color: #6B1D28;
             border-color: #6B1D28;
             color: #F7F2E8;
@@ -144,6 +144,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         .leaflet-container {
             background: #FAF6EE !important;
             font-family: "Work Sans", sans-serif;
+        }
+        .vinum-editorial-tiles {
+            filter: sepia(24%) saturate(52%) contrast(93%) brightness(103%);
+        }
+        .leaflet-control-attribution {
+            background: rgba(247, 242, 232, 0.88) !important;
+            color: #6A5A4F !important;
+            font-family: "JetBrains Mono", monospace !important;
+            font-size: 9px !important;
         }
         .leaflet-popup-content-wrapper {
             background: #FAF6EE !important;
@@ -368,9 +377,16 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                             </div>
                         </div>
                         <div class="flex flex-wrap justify-between items-center text-[11px] font-mono text-walnut px-1 gap-2">
-                            <span>Haz clic en un marcador para inspeccionar el terroir y actualizar el Radar Sensorial 5D.</span>
-                            <span id="map-engine-label" class="text-sage">Cartografía: Leaflet.js</span>
+                            <div id="atlas-basemap-bar" role="group" aria-label="Proveedor cartográfico" class="inline-flex rounded border border-espresso/15 bg-butter/60 p-0.5 text-[10px] font-mono">
+                                <button type="button" data-basemap="osm-editorial" class="atlas-basemap-btn is-active px-2 py-0.5 rounded-xs cursor-pointer">OSM Editorial</button>
+                                <button type="button" data-basemap="ign-espana" class="atlas-basemap-btn px-2 py-0.5 rounded-xs text-walnut hover:text-espresso cursor-pointer">IGN España</button>
+                                <button type="button" data-basemap="svg-offline" class="atlas-basemap-btn px-2 py-0.5 rounded-xs text-walnut hover:text-espresso cursor-pointer">SVG Offline</button>
+                            </div>
+                            <span id="map-engine-label" class="text-sage">Cartografía: OpenStreetMap Editorial (Zero-Key Open Source)</span>
                         </div>
+                        <p class="text-[11px] font-mono text-walnut/80 px-1">
+                            Haz clic en un marcador para inspeccionar el terroir y actualizar el Radar Sensorial 5D.
+                        </p>
                     </div>
 
                     <!-- Terroir & Climate Inspector -->
@@ -1048,8 +1064,34 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
         let leafletMap = null;
         let atlasMap = null; // Alias for lifecycle invalidation
+        let activeTileLayer = null;
+        let activeBasemapId = "osm-editorial";
+        let consecutiveTileErrors = 0;
+        const MAX_CONSECUTIVE_TILE_ERRORS = 4;
         let mapMarkers = [];
         let atlasNeedsInitialCenter = false;
+
+        const BASEMAP_PROVIDERS = {
+            "osm-editorial": {
+                url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                options: {
+                    maxZoom: 18,
+                    className: "vinum-editorial-tiles",
+                    attribution: "&copy; OpenStreetMap contributors"
+                },
+                label: "Cartografía: OpenStreetMap Editorial (Zero-Key Open Source)",
+                nextFallback: "ign-espana"
+            },
+            "ign-espana": {
+                url: "https://www.ign.es/wmts/ign-base?layer=IGNBaseTodo&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix={z}&TileCol={x}&TileRow={y}",
+                options: {
+                    maxZoom: 18,
+                    attribution: "&copy; Instituto Geográfico Nacional de España (CC-BY 4.0)"
+                },
+                label: "Cartografía: IGN España (CC-BY 4.0 Open Source)",
+                nextFallback: "svg-offline"
+            }
+        };
 
         let expandedCategory = null;
         let selectedOccasion = "Cena Romántica";
@@ -1435,6 +1477,14 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                         b.classList.toggle("text-walnut", b !== btn);
                     });
                     loadAtlasLayer(layer);
+                });
+            });
+
+            // Atlas zero-key basemap provider switcher
+            document.querySelectorAll(".atlas-basemap-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const providerId = btn.getAttribute("data-basemap") || "osm-editorial";
+                    switchBasemapProvider(providerId);
                 });
             });
 
@@ -2017,7 +2067,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     selectAtlasFeature(matchingDo || atlasFeatures[0]);
                 }
 
-                if (typeof L !== "undefined" && typeof L.map === "function") {
+                if (activeBasemapId !== "svg-offline" && typeof L !== "undefined" && typeof L.map === "function") {
                     initLeafletAtlas();
                 } else {
                     initSvgFallbackAtlas();
@@ -2197,25 +2247,100 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             updateAtlasRadar(feature);
         }
 
+        function syncBasemapButtons(providerId) {
+            document.querySelectorAll(".atlas-basemap-btn").forEach(btn => {
+                const isActive = btn.getAttribute("data-basemap") === providerId;
+                btn.classList.toggle("is-active", isActive);
+                btn.classList.toggle("text-walnut", !isActive);
+            });
+        }
+
+        function switchBasemapProvider(providerId) {
+            if (providerId === "svg-offline") {
+                initSvgFallbackAtlas();
+                return;
+            }
+            if (typeof L === "undefined" || typeof L.map !== "function") {
+                initSvgFallbackAtlas();
+                showToast("Leaflet.js no disponible sin conexión; manteniendo Atlas SVG.", { variant: "warning" });
+                return;
+            }
+            activeBasemapId = BASEMAP_PROVIDERS[providerId] ? providerId : "osm-editorial";
+            initLeafletAtlas();
+            setTimeout(() => {
+                if (atlasMap) atlasMap.invalidateSize();
+            }, 60);
+        }
+
+        function applyLeafletBasemap(providerId) {
+            if (!leafletMap) return;
+            const resolvedId = BASEMAP_PROVIDERS[providerId] ? providerId : "osm-editorial";
+            const cfg = BASEMAP_PROVIDERS[resolvedId];
+            activeBasemapId = resolvedId;
+            syncBasemapButtons(resolvedId);
+
+            const mapDiv = document.getElementById("atlas-map");
+            const fallbackDiv = document.getElementById("atlas-svg-fallback");
+            if (mapDiv) mapDiv.classList.remove("hidden");
+            if (fallbackDiv) fallbackDiv.classList.add("hidden");
+
+            if (activeTileLayer) {
+                leafletMap.removeLayer(activeTileLayer);
+                activeTileLayer = null;
+            }
+            consecutiveTileErrors = 0;
+
+            const tileLayer = L.tileLayer(cfg.url, cfg.options);
+            tileLayer.on("tileload", () => {
+                consecutiveTileErrors = 0;
+            });
+            tileLayer.on("tileerror", () => {
+                if (activeTileLayer !== tileLayer) return;
+                consecutiveTileErrors += 1;
+                if (consecutiveTileErrors >= MAX_CONSECUTIVE_TILE_ERRORS) {
+                    const fallbackTarget = cfg.nextFallback;
+                    console.warn(`Basemap '${resolvedId}' tileerror threshold reached; failing over to '${fallbackTarget}'.`);
+                    if (fallbackTarget && BASEMAP_PROVIDERS[fallbackTarget]) {
+                        applyLeafletBasemap(fallbackTarget);
+                        showToast("Conmutado a mapa IGN España (CC-BY 4.0) por indisponibilidad de teselas.", { variant: "warning" });
+                    } else {
+                        initSvgFallbackAtlas();
+                        showToast("Activado Atlas Vectorial SVG Offline (sin conexión a teselas).", { variant: "warning" });
+                    }
+                }
+            });
+
+            activeTileLayer = tileLayer.addTo(leafletMap);
+            const labelEl = document.getElementById("map-engine-label");
+            if (labelEl) labelEl.textContent = cfg.label;
+        }
+
         function initLeafletAtlas() {
             try {
+                if (activeBasemapId === "svg-offline") {
+                    initSvgFallbackAtlas();
+                    return;
+                }
                 const mapEl = document.getElementById("atlas-map");
+                const fallbackDiv = document.getElementById("atlas-svg-fallback");
                 if (!mapEl) return;
+                mapEl.classList.remove("hidden");
+                if (fallbackDiv) fallbackDiv.classList.add("hidden");
 
                 if (!leafletMap) {
                     leafletMap = L.map("atlas-map", {
                         center: [40.2, -3.7],
                         zoom: 6,
                         zoomControl: true,
-                        attributionControl: false
+                        attributionControl: true
                     });
+                    if (leafletMap.attributionControl) {
+                        leafletMap.attributionControl.setPrefix(false);
+                    }
                     atlasMap = leafletMap;
-
-                    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-                        maxZoom: 18,
-                        subdomains: "abcd"
-                    }).addTo(leafletMap);
                 }
+
+                applyLeafletBasemap(activeBasemapId);
 
                 if (activeTab !== "atlas") {
                     atlasNeedsInitialCenter = true;
@@ -2248,8 +2373,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     marker.on("click", () => selectAtlasFeature(feat));
                     mapMarkers.push({ marker, feature: feat });
                 });
-
-                document.getElementById("map-engine-label").textContent = "Cartografía: Leaflet.js (CartoDB Positron)";
             } catch (err) {
                 console.error("Leaflet init error, switching to SVG fallback:", err);
                 initSvgFallbackAtlas();
@@ -2257,12 +2380,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         }
 
         function initSvgFallbackAtlas() {
+            activeBasemapId = "svg-offline";
+            syncBasemapButtons("svg-offline");
             const mapDiv = document.getElementById("atlas-map");
             const fallbackDiv = document.getElementById("atlas-svg-fallback");
             const canvas = document.getElementById("svg-map-canvas");
             if (mapDiv) mapDiv.classList.add("hidden");
             if (fallbackDiv) fallbackDiv.classList.remove("hidden");
-            document.getElementById("map-engine-label").textContent = "Cartografía: SVG Determinista (Modo Offline)";
+            const labelEl = document.getElementById("map-engine-label");
+            if (labelEl) labelEl.textContent = "Cartografía: SVG Determinista (Modo Offline)";
 
             const svgW = 680;
             const svgH = 340;
