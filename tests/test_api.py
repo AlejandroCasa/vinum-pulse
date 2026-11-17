@@ -393,3 +393,24 @@ def test_dashboard_ui_contextual_bridges_and_cellar_workspace() -> None:
     assert 'id="cellar-inventory-list"' in html
     assert 'id="toast-container"' in html
     assert "showToast(" in html
+
+
+def test_dashboard_ui_zero_key_opensource_cartography() -> None:
+    """Verify GET / uses zero-key OSM/IGN open-source tiles without CartoDB."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    assert "cartocdn" not in html.lower()
+    assert "cartodb" not in html.lower()
+
+    assert "https://tile.openstreetmap.org/{z}/{x}/{y}.png" in html
+    assert "https://www.ign.es/wmts/ign-base" in html
+    assert "vinum-editorial-tiles" in html
+    assert "OpenStreetMap Editorial (Zero-Key Open Source)" in html
+    assert 'id="atlas-basemap-bar"' in html
+    assert 'data-basemap="osm-editorial"' in html
+    assert 'data-basemap="ign-espana"' in html
+    assert 'data-basemap="svg-offline"' in html
+    assert "tileerror" in html
+    assert "applyLeafletBasemap" in html
