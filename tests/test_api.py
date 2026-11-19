@@ -49,29 +49,79 @@ def test_list_wines_with_query_params() -> None:
 
 
 def test_list_dishes_endpoint() -> None:
-    """Verify /api/v1/dishes returns gastronomic catalog across 9 sections."""
+    """Verify /api/v1/dishes returns 45 gastronomic dishes across 9 sections."""
     response = client.get("/api/v1/dishes")
     assert response.status_code == 200
     dishes = response.json()
-    assert len(dishes) == 22
+    assert len(dishes) == 45
     sample = dishes[0]
     assert "id" in sample
     assert "target_sensory" in sample
     assert "body" in sample["target_sensory"]
     categories = {d["category"] for d in dishes}
     assert len(categories) == 9
+    dish_ids = {d["id"] for d in dishes}
+    for expected_id in (
+        "boeuf-bourguignon",
+        "magret-de-canard",
+        "ossobuco-alla-milanese",
+        "bistecca-alla-fiorentina",
+        "beef-wellington",
+        "stilton-aged-cheddar",
+        "tiramisu-clasico",
+    ):
+        assert expected_id in dish_ids
 
 
 def test_list_regions_endpoint() -> None:
-    """Verify /api/v1/regions returns D.O. summaries across all 12 regions."""
+    """Verify /api/v1/regions returns summaries across all 32 European appellations."""
     response = client.get("/api/v1/regions")
     assert response.status_code == 200
     regions = response.json()
-    assert len(regions) >= 12
+    assert len(regions) == 32
     sample = regions[0]
     assert "appellation" in sample
+    assert "country" in sample
+    assert "classification" in sample
     assert "wine_count" in sample
     assert "climate_type" in sample
+
+
+def test_country_query_filters_across_catalog_endpoints() -> None:
+    """Verify ?country= filters wines, regions, and atlas GeoJSON accurately."""
+    expected_wines = {
+        "España": 65,
+        "Francia": 55,
+        "Italia": 55,
+        "Inglaterra": 25,
+    }
+    expected_regions = {
+        "España": 12,
+        "Francia": 8,
+        "Italia": 8,
+        "Inglaterra": 4,
+    }
+
+    for country, wine_total in expected_wines.items():
+        w_res = client.get("/api/v1/wines", params={"country": country})
+        assert w_res.status_code == 200
+        wines = w_res.json()
+        assert len(wines) == wine_total
+        assert all(w["country"] == country for w in wines)
+
+        r_res = client.get("/api/v1/regions", params={"country": country})
+        assert r_res.status_code == 200
+        regions = r_res.json()
+        assert len(regions) == expected_regions[country]
+        assert all(r["country"] == country for r in regions)
+
+        g_res = client.get(
+            "/api/v1/atlas/geojson", params={"layer": "all", "country": country}
+        )
+        assert g_res.status_code == 200
+        features = g_res.json()["features"]
+        assert len(features) == wine_total + expected_regions[country]
+        assert all(f["properties"]["country"] == country for f in features)
 
 
 def test_recommend_pairing_endpoint_success() -> None:
@@ -124,21 +174,23 @@ def test_dashboard_ui_endpoint() -> None:
 
 
 def test_atlas_geojson_endpoint_wineries() -> None:
-    """Verify /api/v1/atlas/geojson returns valid GeoJSON for 36 wineries."""
+    """Verify /api/v1/atlas/geojson returns valid GeoJSON for 200 European wineries."""
     response = client.get("/api/v1/atlas/geojson")
     assert response.status_code == 200
     data = response.json()
     assert data["type"] == "FeatureCollection"
     features = data["features"]
-    assert len(features) == 36
+    assert len(features) == 200
 
-    # Verify all 12 D.O.s are represented
+    # Verify all 32 European appellations and 4 countries are represented
     appellations = {f["properties"]["appellation"] for f in features}
-    assert len(appellations) == 12
+    countries = {f["properties"]["country"] for f in features}
+    assert len(appellations) == 32
+    assert countries == {"España", "Francia", "Italia", "Inglaterra"}
     assert "D.O.Ca. Rioja" in appellations
-    assert "D.O. Ribera del Duero" in appellations
-    assert "D.O.Q. Priorat" in appellations
-    assert "D.O. Rías Baixas" in appellations
+    assert "AOC Bordeaux" in appellations
+    assert "DOCG Piemonte" in appellations
+    assert "PDO Sussex" in appellations
 
     # Validate GeoJSON schema, coordinates and terroir properties
     for feat in features:
@@ -147,13 +199,15 @@ def test_atlas_geojson_endpoint_wineries() -> None:
         coords = feat["geometry"]["coordinates"]
         assert len(coords) == 2
         lon, lat = coords
-        assert -10.0 <= lon <= 5.0
-        assert 35.0 <= lat <= 45.0
+        assert -10.0 <= lon <= 19.0
+        assert 35.0 <= lat <= 53.0
         p = feat["properties"]
         assert p["feature_type"] == "winery"
         assert "winery" in p
         assert "name" in p
         assert "appellation" in p
+        assert "country" in p
+        assert "classification" in p
         assert "autonomous_community" in p
         assert "climate" in p
         assert "soil" in p
@@ -170,9 +224,11 @@ def test_atlas_geojson_endpoint_layers() -> None:
     assert reg_res.status_code == 200
     reg_data = reg_res.json()
     assert reg_data["type"] == "FeatureCollection"
-    assert len(reg_data["features"]) == 12
+    assert len(reg_data["features"]) == 32
     for feat in reg_data["features"]:
         assert feat["properties"]["feature_type"] == "region"
+        assert "country" in feat["properties"]
+        assert "classification" in feat["properties"]
         assert "wineries" in feat["properties"]
         assert "winery_count" in feat["properties"]
 
@@ -180,7 +236,7 @@ def test_atlas_geojson_endpoint_layers() -> None:
     all_res = client.get("/api/v1/atlas/geojson", params={"layer": "all"})
     assert all_res.status_code == 200
     all_data = all_res.json()
-    assert len(all_data["features"]) == 48
+    assert len(all_data["features"]) == 232
 
 
 def test_dashboard_ui_atlas_integration() -> None:
@@ -414,3 +470,20 @@ def test_dashboard_ui_zero_key_opensource_cartography() -> None:
     assert 'data-basemap="svg-offline"' in html
     assert "tileerror" in html
     assert "applyLeafletBasemap" in html
+
+
+def test_dashboard_ui_european_atlas_and_country_filters() -> None:
+    """Verify GET / embeds European country selectors and dynamic flyToBounds."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    assert 'id="country-pills-bar"' in html
+    assert "Todos (Europa)" in html
+    for country in ("España", "Francia", "Italia", "Inglaterra"):
+        assert f'data-country="{country}"' in html
+    assert 'id="catalog-country-filter"' in html
+    assert "EUROPE_DEFAULT_VIEW" in html
+    assert "COUNTRY_BOUNDS" in html
+    assert "flyToBounds" in html
+    assert "filterAtlasByCountry" in html

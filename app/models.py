@@ -14,12 +14,15 @@ class WineModel(Base):
     __table_args__ = (
         Index("ix_wines_type_price", "wine_type", "price_eur"),
         Index("ix_wines_appellation_price", "appellation", "price_eur"),
+        Index("ix_wines_country_price", "country", "price_eur"),
     )
 
     id: Mapped[str] = mapped_column(String(128), primary_key=True)
     name: Mapped[str] = mapped_column(String(256), index=True)
     winery: Mapped[str] = mapped_column(String(256), index=True)
     appellation: Mapped[str] = mapped_column(String(128), index=True)
+    country: Mapped[str] = mapped_column(String(64), default="España", index=True)
+    classification: Mapped[str] = mapped_column(String(32), default="D.O.")
     wine_type: Mapped[str] = mapped_column(String(32), index=True)
     vintage: Mapped[int] = mapped_column(Integer)
     price_eur: Mapped[float] = mapped_column(Float, index=True)
@@ -50,6 +53,8 @@ class WineModel(Base):
             name=self.name,
             winery=self.winery,
             appellation=self.appellation,
+            country=self.country or "España",
+            classification=self.classification or "D.O.",
             wine_type=WineType(self.wine_type),
             vintage=self.vintage,
             price_eur=self.price_eur,
@@ -82,6 +87,8 @@ class WineModel(Base):
             name=wine.name,
             winery=wine.winery,
             appellation=wine.appellation,
+            country=wine.country,
+            classification=wine.classification,
             wine_type=str(wine.wine_type),
             vintage=wine.vintage,
             price_eur=wine.price_eur,

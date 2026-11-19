@@ -25,14 +25,61 @@ def engine() -> SommelierEngine:
 
 
 def test_catalog_initialization(engine: SommelierEngine) -> None:
-    """Verify default catalog contains curated Spanish wines and dishes."""
+    """Verify default catalog contains 200 European wines and 45 dishes."""
     wines = engine.get_wines()
     dishes = engine.get_dishes()
 
-    assert len(wines) == len(CURATED_WINES)
-    assert len(dishes) == len(CURATED_DISHES)
-    assert len(wines) >= 10
-    assert len(dishes) == 22
+    assert len(wines) == len(CURATED_WINES) == 200
+    assert len(dishes) == len(CURATED_DISHES) == 45
+    assert len({w.id for w in wines}) == 200
+    assert len({w.name for w in wines}) == 200
+    assert len({d.id for d in dishes}) == 45
+
+
+def test_european_catalog_country_distribution_and_bounds() -> None:
+    """Verify exact country wine counts and geographic bounding boxes."""
+    bounds: dict[str, tuple[float, float, float, float]] = {
+        "España": (35.5, 43.8, -9.5, 3.5),
+        "Francia": (42.0, 50.5, -2.0, 8.5),
+        "Italia": (36.5, 47.2, 7.0, 18.5),
+        "Inglaterra": (50.0, 52.0, -2.5, 2.0),
+    }
+    expected_counts = {
+        "España": 65,
+        "Francia": 55,
+        "Italia": 55,
+        "Inglaterra": 25,
+    }
+    counts: dict[str, int] = {}
+    for wine in CURATED_WINES:
+        assert wine.country in bounds
+        lat_min, lat_max, lon_min, lon_max = bounds[wine.country]
+        assert lat_min <= wine.latitude <= lat_max, f"{wine.id} lat out of bounds"
+        assert lon_min <= wine.longitude <= lon_max, f"{wine.id} lon out of bounds"
+        assert wine.classification in (
+            "D.O.",
+            "D.O.Ca.",
+            "D.O.Q.",
+            "AOC",
+            "DOC",
+            "DOCG",
+            "PDO",
+        )
+        counts[wine.country] = counts.get(wine.country, 0) + 1
+    assert counts == expected_counts
+
+
+def test_filter_wines_and_regions_by_country_in_memory(
+    engine: SommelierEngine,
+) -> None:
+    """Verify in-memory country filtering for wines and regions."""
+    french = engine.get_wines(country="Francia")
+    assert len(french) == 55
+    assert all(w.country == "Francia" for w in french)
+
+    italian_regions = engine.get_regions(country="Italia")
+    assert len(italian_regions) == 8
+    assert all(r.country == "Italia" for r in italian_regions)
 
 
 def test_get_wine_by_id(engine: SommelierEngine) -> None:
@@ -283,27 +330,32 @@ def test_db_backed_engine_pagination_search_and_pairing() -> None:
 
 
 def test_atlas_geojson_generation() -> None:
-    """Verify SommelierEngine.get_atlas_geojson produces valid RFC 7946 GeoJSON collections."""
+    """Verify SommelierEngine.get_atlas_geojson produces valid RFC 7946 GeoJSON."""
     engine = SommelierEngine()
 
     # Wineries layer
     wineries_fc = engine.get_atlas_geojson(layer="wineries")
     assert wineries_fc.type == "FeatureCollection"
-    assert len(wineries_fc.features) == 36
+    assert len(wineries_fc.features) == 200
     all_appellations = {f.properties["appellation"] for f in wineries_fc.features}
-    assert len(all_appellations) == 12
+    assert len(all_appellations) == 32
 
     # Regions layer
     regions_fc = engine.get_atlas_geojson(layer="regions")
     assert regions_fc.type == "FeatureCollection"
-    assert len(regions_fc.features) == 12
+    assert len(regions_fc.features) == 32
     for feat in regions_fc.features:
         assert feat.properties["feature_type"] == "region"
         assert feat.properties["winery_count"] >= 1
 
     # All layer
     all_fc = engine.get_atlas_geojson(layer="all")
-    assert len(all_fc.features) == 48
+    assert len(all_fc.features) == 232
+
+    # Country-filtered layer
+    uk_fc = engine.get_atlas_geojson(layer="all", country="Inglaterra")
+    assert len(uk_fc.features) == 29
+    assert all(f.properties["country"] == "Inglaterra" for f in uk_fc.features)
 
 
 def test_gastronomic_sections_coverage() -> None:

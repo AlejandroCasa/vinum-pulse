@@ -342,19 +342,34 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                             <button type="button" data-layer="all" class="atlas-layer-btn px-2.5 py-1 rounded-xs text-walnut hover:text-espresso cursor-pointer">Todo</button>
                         </div>
                         <span id="atlas-status-badge" class="px-3 py-1.5 text-xs font-mono rounded bg-butter text-bordeaux border border-bordeaux/20 tabular-nums">
-                            12 D.O. · 36 Bodegas
+                            32 Regiones · 200 Bodegas
                         </span>
+                    </div>
+                </div>
+
+                <!-- Country Quick-Select Pill Bar (European Atlas) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-xs font-mono text-walnut">
+                        <span>Atlas Vitivinícola Europeo · Selección de País</span>
+                        <span id="atlas-selected-country-label" class="text-bordeaux font-medium">Europa (4 Países)</span>
+                    </div>
+                    <div id="country-pills-bar" role="group" aria-label="Filtro de país del atlas" class="flex flex-wrap gap-2 text-xs font-mono">
+                        <button type="button" data-country="" class="country-pill do-pill px-3 py-1.5 rounded-sm is-active cursor-pointer">Todos (Europa)</button>
+                        <button type="button" data-country="España" class="country-pill do-pill px-3 py-1.5 rounded-sm cursor-pointer">España</button>
+                        <button type="button" data-country="Francia" class="country-pill do-pill px-3 py-1.5 rounded-sm cursor-pointer">Francia</button>
+                        <button type="button" data-country="Italia" class="country-pill do-pill px-3 py-1.5 rounded-sm cursor-pointer">Italia</button>
+                        <button type="button" data-country="Inglaterra" class="country-pill do-pill px-3 py-1.5 rounded-sm cursor-pointer">Inglaterra</button>
                     </div>
                 </div>
 
                 <!-- D.O. Quick-Select Pill Bar -->
                 <div class="space-y-2">
                     <div class="flex justify-between items-center text-xs font-mono text-walnut">
-                        <span>Filtro por Denominación de Origen</span>
+                        <span>Filtro por Denominación / AOC / DOCG / PDO</span>
                         <span id="atlas-selected-do-label" class="text-bordeaux font-medium">Todas las regiones</span>
                     </div>
                     <div id="do-pills-bar" class="flex flex-wrap gap-2 text-xs font-mono">
-                        <button type="button" data-do="" class="do-pill px-3 py-1.5 rounded-sm is-active cursor-pointer">Todas (12 D.O.)</button>
+                        <button type="button" data-do="" class="do-pill px-3 py-1.5 rounded-sm is-active cursor-pointer">Todas (32 Regiones)</button>
                     </div>
                 </div>
 
@@ -697,7 +712,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                         </p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span id="catalog-count-label" class="text-xs font-mono text-walnut tabular-nums">36 vinos</span>
+                        <span id="catalog-count-label" class="text-xs font-mono text-walnut tabular-nums">200 vinos</span>
                         <button type="button" id="btn-catalog-reset" class="hidden text-xs font-mono text-bordeaux underline underline-offset-4 cursor-pointer">
                             Limpiar filtros
                         </button>
@@ -707,14 +722,24 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 <!-- Search & Filter Toolbar -->
                 <div class="bg-butter/50 border border-espresso/12 rounded p-4 space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                        <div class="md:col-span-5">
-                            <label for="catalog-search-input" class="sr-only">Buscar vino o bodega</label>
-                            <input id="catalog-search-input" type="search" placeholder="Buscar vino, bodega, uva o nota de cata..." class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm text-espresso placeholder:text-walnut/60 focus:border-bordeaux focus:ring-0">
-                        </div>
                         <div class="md:col-span-4">
+                            <label for="catalog-search-input" class="sr-only">Buscar vino o bodega</label>
+                            <input id="catalog-search-input" type="search" placeholder="Buscar vino, bodega, país o nota de cata..." class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm text-espresso placeholder:text-walnut/60 focus:border-bordeaux focus:ring-0">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="catalog-country-filter" class="sr-only">Filtrar por País</label>
+                            <select id="catalog-country-filter" class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm font-sans text-espresso focus:border-bordeaux focus:ring-0">
+                                <option value="">Todos los países (4)</option>
+                                <option value="España">España</option>
+                                <option value="Francia">Francia</option>
+                                <option value="Italia">Italia</option>
+                                <option value="Inglaterra">Inglaterra</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
                             <label for="catalog-do-filter" class="sr-only">Filtrar por Denominación de Origen</label>
                             <select id="catalog-do-filter" class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm font-sans text-espresso focus:border-bordeaux focus:ring-0">
-                                <option value="">Todas las Denominaciones (12 D.O.)</option>
+                                <option value="">Todas las Denominaciones (32)</option>
                             </select>
                         </div>
                         <div class="md:col-span-3">
@@ -733,6 +758,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                         <button type="button" data-type="Red" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Tinto</button>
                         <button type="button" data-type="White" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Blanco</button>
                         <button type="button" data-type="Sparkling" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Espumoso</button>
+                        <button type="button" data-type="Rose" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Rosado</button>
                         <button type="button" data-type="Fortified" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Generoso</button>
                     </div>
                 </div>
@@ -1052,11 +1078,21 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         let atlasFeatures = [];
 
         let selectedDishId = "chuleton-brasa";
+        let selectedCountry = "";
         let selectedDo = "";
         let activeAtlasLayer = "wineries";
         let activeAtlasFeature = null;
         let preferredType = null;
         let currentPairingRec = null;
+
+        const EUROPE_DEFAULT_VIEW = { center: [45.5, 2.5], zoom: 4.5 };
+        const COUNTRY_BOUNDS = {
+            "": [[36.0, -9.5], [52.0, 18.5]],
+            "España": [[36.0, -9.5], [43.5, 3.2]],
+            "Francia": [[42.3, -2.5], [50.2, 8.2]],
+            "Italia": [[36.6, 7.0], [47.0, 18.5]],
+            "Inglaterra": [[50.4, -2.2], [51.8, 1.8]]
+        };
 
         let radarChartInstance = null;
         let radarChart = null; // Atlas 5D Sensory Comparison Radar
@@ -1096,6 +1132,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         let expandedCategory = null;
         let selectedOccasion = "Cena Romántica";
         let catalogSearchQuery = "";
+        let catalogCountryFilter = "";
         let catalogDoFilter = "";
         let catalogTypeFilter = "";
         let catalogSortOrder = "price-asc";
@@ -1178,7 +1215,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     if (atlasMap) {
                         atlasMap.invalidateSize();
                         if (atlasNeedsInitialCenter) {
-                            atlasMap.setView([40.2, -3.7], 6, { animate: false });
+                            atlasMap.setView(EUROPE_DEFAULT_VIEW.center, EUROPE_DEFAULT_VIEW.zoom, { animate: false });
                             atlasNeedsInitialCenter = false;
                         }
                     }
@@ -1289,7 +1326,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             try {
                 const [resDishes, resWines, resRegions] = await Promise.all([
                     fetch("/api/v1/dishes"),
-                    fetch("/api/v1/wines?limit=200"),
+                    fetch("/api/v1/wines?limit=250"),
                     fetch("/api/v1/regions")
                 ]);
                 allDishes = await resDishes.json();
@@ -1527,9 +1564,23 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 }
             });
 
+            // Country Quick-Select Pills (European Atlas)
+            document.querySelectorAll(".country-pill").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const country = btn.getAttribute("data-country") || "";
+                    filterAtlasByCountry(country, btn);
+                });
+            });
+
             // Wine Catalog Search & Filters
             document.getElementById("catalog-search-input")?.addEventListener("input", (e) => {
                 catalogSearchQuery = e.target.value.trim();
+                renderWineCatalog();
+            });
+            document.getElementById("catalog-country-filter")?.addEventListener("change", (e) => {
+                catalogCountryFilter = e.target.value;
+                catalogDoFilter = "";
+                populateCatalogFilters();
                 renderWineCatalog();
             });
             document.getElementById("catalog-do-filter")?.addEventListener("change", (e) => {
@@ -1908,19 +1959,27 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         function populateCatalogFilters() {
             const select = document.getElementById("catalog-do-filter");
             if (!select) return;
-            const dos = [...new Set(allWines.map(w => w.appellation))].sort();
-            select.innerHTML = `<option value="">Todas las Denominaciones (${dos.length} D.O.)</option>` +
+            const pool = catalogCountryFilter
+                ? allWines.filter(w => w.country === catalogCountryFilter)
+                : allWines;
+            const dos = [...new Set(pool.map(w => w.appellation))].sort();
+            select.innerHTML = `<option value="">Todas las Denominaciones (${dos.length})</option>` +
                 dos.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+            select.value = catalogDoFilter;
         }
 
         function resetCatalogFilters() {
             catalogSearchQuery = "";
+            catalogCountryFilter = "";
             catalogDoFilter = "";
             catalogTypeFilter = "";
             highlightedCatalogWineId = "";
             const searchEl = document.getElementById("catalog-search-input");
+            const countryEl = document.getElementById("catalog-country-filter");
             const doEl = document.getElementById("catalog-do-filter");
             if (searchEl) searchEl.value = "";
+            if (countryEl) countryEl.value = "";
+            populateCatalogFilters();
             if (doEl) doEl.value = "";
             document.querySelectorAll(".catalog-type-pill").forEach(b => {
                 const isAll = b.getAttribute("data-type") === "";
@@ -1944,10 +2003,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
             const q = catalogSearchQuery.toLowerCase();
             let filtered = allWines.filter(w => {
+                if (catalogCountryFilter && w.country !== catalogCountryFilter) return false;
                 if (catalogDoFilter && w.appellation !== catalogDoFilter) return false;
                 if (catalogTypeFilter && w.wine_type !== catalogTypeFilter) return false;
                 if (q) {
-                    const haystack = `${w.name} ${w.winery} ${w.appellation} ${w.tagline || ""} ${w.tasting_notes || ""}`.toLowerCase();
+                    const haystack = `${w.name} ${w.winery} ${w.appellation} ${w.country || ""} ${w.classification || ""} ${w.tagline || ""} ${w.tasting_notes || ""}`.toLowerCase();
                     if (!haystack.includes(q)) return false;
                 }
                 return true;
@@ -1964,7 +2024,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 countEl.textContent = `Mostrando ${filtered.length} de ${allWines.length} vinos`;
             }
             if (resetBtn) {
-                const hasFilter = Boolean(catalogSearchQuery || catalogDoFilter || catalogTypeFilter || highlightedCatalogWineId);
+                const hasFilter = Boolean(catalogSearchQuery || catalogCountryFilter || catalogDoFilter || catalogTypeFilter || highlightedCatalogWineId);
                 resetBtn.classList.toggle("hidden", !hasFilter);
             }
 
@@ -2044,9 +2104,32 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             await loadAtlasLayer(activeAtlasLayer);
         }
 
+        async function filterAtlasByCountry(country, activeBtn) {
+            selectedCountry = country;
+            selectedDo = "";
+            document.querySelectorAll(".country-pill").forEach(b => b.classList.remove("is-active"));
+            if (activeBtn) activeBtn.classList.add("is-active");
+
+            const labelEl = document.getElementById("atlas-selected-country-label");
+            if (labelEl) {
+                labelEl.textContent = country ? `${country} · Atlas Regional` : "Europa (4 Países)";
+            }
+
+            await loadAtlasLayer(activeAtlasLayer);
+
+            if (leafletMap) {
+                if (country && COUNTRY_BOUNDS[country]) {
+                    leafletMap.flyToBounds(COUNTRY_BOUNDS[country], { padding: [24, 24], duration: 0.75 });
+                } else {
+                    leafletMap.setView(EUROPE_DEFAULT_VIEW.center, EUROPE_DEFAULT_VIEW.zoom, { animate: true });
+                }
+            }
+        }
+
         async function loadAtlasLayer(layer) {
             try {
-                const res = await fetch(`/api/v1/atlas/geojson?layer=${encodeURIComponent(layer)}`);
+                const countryQuery = selectedCountry ? `&country=${encodeURIComponent(selectedCountry)}` : "";
+                const res = await fetch(`/api/v1/atlas/geojson?layer=${encodeURIComponent(layer)}${countryQuery}`);
                 if (!res.ok) throw new Error("Fallo al obtener GeoJSON del Atlas.");
                 const data = await res.json();
                 atlasFeatures = data.features || [];
@@ -2055,9 +2138,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 if (badge) {
                     const wineriesCount = atlasFeatures.filter(f => f.properties.feature_type === "winery").length;
                     const regionsCount = atlasFeatures.filter(f => f.properties.feature_type === "region").length;
-                    if (layer === "regions") badge.textContent = `${regionsCount} Regiones D.O.`;
-                    else if (layer === "all") badge.textContent = `${regionsCount} D.O. · ${wineriesCount} Bodegas`;
-                    else badge.textContent = `12 D.O. · ${wineriesCount} Bodegas`;
+                    const uniqueDos = new Set(atlasFeatures.map(f => f.properties.appellation)).size;
+                    if (layer === "regions") badge.textContent = `${regionsCount} Regiones`;
+                    else if (layer === "all") badge.textContent = `${regionsCount} Regiones · ${wineriesCount} Bodegas`;
+                    else badge.textContent = `${uniqueDos} Regiones · ${wineriesCount} Bodegas`;
                 }
 
                 populateDoPills();
@@ -2117,8 +2201,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 if (doName && matching.length > 0) {
                     const first = matching[0];
                     leafletMap.setView([first.geometry.coordinates[1], first.geometry.coordinates[0]], 8, { animate: true });
+                } else if (selectedCountry && COUNTRY_BOUNDS[selectedCountry]) {
+                    leafletMap.flyToBounds(COUNTRY_BOUNDS[selectedCountry], { padding: [24, 24], duration: 0.75 });
                 } else {
-                    leafletMap.setView([40.2, -3.7], 6, { animate: true });
+                    leafletMap.setView(EUROPE_DEFAULT_VIEW.center, EUROPE_DEFAULT_VIEW.zoom, { animate: true });
                 }
             }
 
@@ -2329,8 +2415,8 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
                 if (!leafletMap) {
                     leafletMap = L.map("atlas-map", {
-                        center: [40.2, -3.7],
-                        zoom: 6,
+                        center: EUROPE_DEFAULT_VIEW.center,
+                        zoom: EUROPE_DEFAULT_VIEW.zoom,
                         zoomControl: true,
                         attributionControl: true
                     });

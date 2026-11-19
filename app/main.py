@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 
-from app.database import SessionLocal, engine
+from app.database import SessionLocal, engine, settings
 from app.schemas import (
     CellarCreateRequest,
     CellarItem,
@@ -19,17 +19,34 @@ from app.schemas import (
     WineProfile,
     WineType,
 )
+from app.security import (
+    BodySizeLimitMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    TokenBucketRateLimiter,
+)
 from app.sommelier import SommelierEngine, init_db
 from app.ui import DASHBOARD_HTML
 
 app = FastAPI(
     title="Vinum Pulse",
     description=(
-        "Real-Time Sommelier Radar, Gastronomic Pairing Engine, and "
-        "Cellar Analytics Platform with SQLite persistence."
+        "European Real-Time Sommelier Radar, Dynamic Geo-Atlas (200 Wines, "
+        "4 Countries), Gastronomic Pairing Engine, and Cellar Analytics Platform."
     ),
-    version="0.2.0",
+    version="0.3.0",
 )
+
+rate_limiter = TokenBucketRateLimiter(
+    capacity=settings.rate_limit_capacity,
+    refill_per_sec=settings.rate_limit_refill_per_sec,
+    enabled=settings.rate_limit_enabled,
+)
+
+# Register perimeter security middlewares (outermost runs first)
+app.add_middleware(RateLimitMiddleware, limiter=rate_limiter)
+app.add_middleware(BodySizeLimitMiddleware, max_body_bytes=settings.max_body_bytes)
+app.add_middleware(SecurityHeadersMiddleware)
 
 init_db(engine, SessionLocal)
 sommelier = SommelierEngine(session_factory=SessionLocal)
@@ -46,6 +63,10 @@ def list_wines(
     appellation: str | None = Query(
         default=None, description="Filter by Designation of Origin"
     ),
+    country: str | None = Query(
+        default=None,
+        description="Filter by country (España, Francia, Italia, Inglaterra)",
+    ),
     wine_type: WineType | None = Query(
         default=None, description="Filter by wine type (Red, White, etc.)"
     ),
@@ -53,10 +74,11 @@ def list_wines(
         default=None, gt=0, description="Maximum bottle price in EUR"
     ),
     q: str | None = Query(
-        default=None, description="Search by wine name, winery, or appellation"
+        default=None,
+        description="Search by wine name, winery, appellation, or country",
     ),
     limit: int = Query(
-        default=100, ge=1, le=500, description="Maximum number of items to return"
+        default=250, ge=1, le=500, description="Maximum number of items to return"
     ),
     offset: int = Query(
         default=0, ge=0, description="Number of items to skip for pagination"
@@ -65,6 +87,7 @@ def list_wines(
     """Return cataloged wines with optional filtering and pagination."""
     return sommelier.get_wines(
         appellation=appellation,
+        country=country,
         wine_type=wine_type,
         max_price=max_price,
         q=q,
@@ -93,9 +116,14 @@ def list_dishes(
 
 
 @app.get("/api/v1/regions", response_model=list[RegionSummary], tags=["Catalog"])
-def list_regions() -> list[RegionSummary]:
-    """Return list of featured Spanish wine regions and wine counts."""
-    return sommelier.get_regions()
+def list_regions(
+    country: str | None = Query(
+        default=None,
+        description="Optional country filter (España, Francia, Italia, Inglaterra)",
+    ),
+) -> list[RegionSummary]:
+    """Return list of featured European wine regions and wine counts."""
+    return sommelier.get_regions(country=country)
 
 
 @app.get(
@@ -107,13 +135,17 @@ def get_atlas_geojson(
     layer: str = Query(
         default="wineries",
         description=(
-            "Feature layer: 'wineries' (36 curated wineries across 12 D.O.s), "
-            "'regions' (12 D.O. region centroids), or 'all' (both)."
+            "Feature layer: 'wineries' (200 curated wineries across 32 appellations), "
+            "'regions' (32 European region centroids), or 'all' (both)."
         ),
+    ),
+    country: str | None = Query(
+        default=None,
+        description="Optional country filter (España, Francia, Italia, Inglaterra)",
     ),
 ) -> GeoJsonFeatureCollection:
     """Return deterministic GeoJSON FeatureCollection of wine regions/wineries."""
-    return sommelier.get_atlas_geojson(layer=layer)
+    return sommelier.get_atlas_geojson(layer=layer, country=country)
 
 
 @app.post(

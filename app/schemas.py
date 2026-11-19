@@ -72,7 +72,20 @@ class WineProfile(BaseModel):
     appellation: str = Field(
         ...,
         min_length=1,
-        description="Official Protected Designation of Origin (D.O. / D.O.Ca. / D.O.Q.).",
+        description=(
+            "Official Protected Designation of Origin "
+            "(D.O. / D.O.Ca. / D.O.Q. / AOC / DOC / DOCG / PDO)."
+        ),
+    )
+    country: str = Field(
+        default="España",
+        min_length=1,
+        description="Producing country (España, Francia, Italia, Inglaterra).",
+    )
+    classification: str = Field(
+        default="D.O.",
+        min_length=1,
+        description="Regulatory appellation tier (D.O., D.O.Ca., D.O.Q., AOC, DOC, DOCG, PDO).",
     )
     wine_type: WineType = Field(
         ...,
@@ -167,7 +180,8 @@ class WineProfile(BaseModel):
             elif self.wine_type == WineType.SPARKLING:
                 self.bottle_silhouette = "Espumosa"
             elif self.glass_type == "Borgoña" or any(
-                k in self.appellation for k in ("Bierzo", "Ribeira Sacra", "Priorat")
+                k in self.appellation
+                for k in ("Bierzo", "Ribeira Sacra", "Priorat", "Bourgogne", "Piemonte")
             ):
                 self.bottle_silhouette = "Borgoña"
             else:
@@ -262,10 +276,18 @@ class RegionSummary(BaseModel):
     """Summary of a wine region and its representation in the catalog."""
 
     appellation: str = Field(..., description="Name of the Appellation / D.O.")
+    country: str = Field(
+        default="España",
+        description="Producing country (España, Francia, Italia, Inglaterra).",
+    )
+    classification: str = Field(
+        default="D.O.",
+        description="Regulatory classification (D.O., D.O.Ca., AOC, DOC, DOCG, PDO).",
+    )
     wine_count: int = Field(..., ge=0, description="Number of cataloged wines.")
     climate_type: str = Field(..., description="Regional climate classification.")
     autonomous_community: str | None = Field(
-        default=None, description="Autonomous Community in Spain."
+        default=None, description="Region or Autonomous Community."
     )
     signature_grape: str | None = Field(
         default=None, description="Signature grape variety."
