@@ -5,7 +5,9 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 
+from app.catalog import CURATED_DISHES, CURATED_WINES
 from app.database import SessionLocal, engine, settings
+from app.gastronomy_bridge import GastronomyPostgresBridge
 from app.schemas import (
     CellarCreateRequest,
     CellarItem,
@@ -49,7 +51,16 @@ app.add_middleware(BodySizeLimitMiddleware, max_body_bytes=settings.max_body_byt
 app.add_middleware(SecurityHeadersMiddleware)
 
 init_db(engine, SessionLocal)
-sommelier = SommelierEngine(session_factory=SessionLocal)
+gastronomy_bridge = GastronomyPostgresBridge(
+    pg_url=settings.gastronomy_pg_url,
+    mise_en_place_base_url=settings.mise_en_place_base_url,
+)
+if gastronomy_bridge.enabled:
+    gastronomy_bridge.sync_catalog(CURATED_WINES, CURATED_DISHES)
+sommelier = SommelierEngine(
+    session_factory=SessionLocal,
+    gastronomy_bridge=gastronomy_bridge,
+)
 
 
 @app.get("/healthz", tags=["Health"])

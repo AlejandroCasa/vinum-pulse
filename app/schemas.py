@@ -220,6 +220,14 @@ class Dish(BaseModel):
         default=None,
         description="Recommended default wine category for this dish.",
     )
+    recipe_slug: str | None = Field(
+        default=None,
+        description="Linked recipe slug in Mise en Place MD when available.",
+    )
+    recipe_url: str | None = Field(
+        default=None,
+        description="Direct deep-link URL to the recipe in Mise en Place MD.",
+    )
 
 
 class DishPairingRequest(BaseModel):
@@ -269,6 +277,14 @@ class PairingRecommendation(BaseModel):
     sommelier_explanation: str = Field(
         ...,
         description="Expert sommelier rationale detailing taste and structural harmony.",
+    )
+    dish_recipe_slug: str | None = Field(
+        default=None,
+        description="Primary recipe slug in Mise en Place MD linked to the evaluated dish.",
+    )
+    dish_recipe_url: str | None = Field(
+        default=None,
+        description="Direct deep-link URL to the dish recipe in Mise en Place MD.",
     )
 
 

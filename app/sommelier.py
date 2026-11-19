@@ -13,6 +13,7 @@ from app.catalog import CURATED_DISHES as CURATED_DISHES
 from app.catalog import CURATED_WINES as CURATED_WINES
 from app.catalog import DO_METADATA as DO_METADATA
 from app.database import Base
+from app.gastronomy_bridge import GastronomyPostgresBridge
 from app.models import CellarItemModel, DishModel, WineModel
 from app.schemas import (
     CellarCreateRequest,
@@ -196,13 +197,26 @@ class SommelierEngine:
         wines: list[WineProfile] | None = None,
         dishes: list[Dish] | None = None,
         session_factory: sessionmaker[Session] | None = None,
+        gastronomy_bridge: GastronomyPostgresBridge | None = None,
     ) -> None:
         """Initialize engine with curated catalogs, custom datasets, or DB session."""
         self._session_factory: sessionmaker[Session] | None = session_factory
+        self._gastronomy_bridge: GastronomyPostgresBridge | None = gastronomy_bridge
         self._wines: list[WineProfile] = list(wines or CURATED_WINES)
         self._dishes: list[Dish] = list(dishes or CURATED_DISHES)
         self._dish_index: dict[str, Dish] = {d.id: d for d in self._dishes}
         self._wine_index: dict[str, WineProfile] = {w.id: w for w in self._wines}
+
+    def _enrich_dishes_with_recipes(self, dishes: list[Dish]) -> list[Dish]:
+        """Attach Mise en Place MD recipe links when the PostgreSQL bridge is active."""
+        if self._gastronomy_bridge is None or not self._gastronomy_bridge.enabled:
+            return dishes
+        links = self._gastronomy_bridge.fetch_dish_recipe_links()
+        if not links:
+            return dishes
+        return [
+            self._gastronomy_bridge.attach_recipe_link(dish, links) for dish in dishes
+        ]
 
     def get_wines(
         self,
@@ -319,12 +333,14 @@ class SommelierEngine:
     ) -> list[Dish]:
         """Return cataloged dishes with optional category filtering and search."""
         if self._session_factory is not None:
-            return self._get_dishes_db(
-                self._session_factory,
-                category=category,
-                q=q,
-                limit=limit,
-                offset=offset,
+            return self._enrich_dishes_with_recipes(
+                self._get_dishes_db(
+                    self._session_factory,
+                    category=category,
+                    q=q,
+                    limit=limit,
+                    offset=offset,
+                )
             )
 
         query = q.lower().strip() if q else None
@@ -338,7 +354,7 @@ class SommelierEngine:
                 or query in dish.description.lower()
             )
         ]
-        return results[offset : offset + limit]
+        return self._enrich_dishes_with_recipes(results[offset : offset + limit])
 
     def _get_dishes_db(
         self,
@@ -376,11 +392,16 @@ class SommelierEngine:
 
     def get_dish_by_id(self, dish_id: str) -> Dish | None:
         """Look up a dish by its unique identifier slug."""
+        dish: Dish | None
         if self._session_factory is not None:
             with self._session_factory() as session:
                 row = session.get(DishModel, dish_id)
-                return row.to_schema() if row else None
-        return self._dish_index.get(dish_id)
+                dish = row.to_schema() if row else None
+        else:
+            dish = self._dish_index.get(dish_id)
+        if dish is None:
+            return None
+        return self._enrich_dishes_with_recipes([dish])[0]
 
     @staticmethod
     def _build_region_summary(app_name: str, count: int) -> RegionSummary:
@@ -626,6 +647,8 @@ class SommelierEngine:
             alternative_wines=alternatives,
             target_sensory=dish.target_sensory,
             sommelier_explanation=explanation,
+            dish_recipe_slug=dish.recipe_slug,
+            dish_recipe_url=dish.recipe_url,
         )
 
     def plan_evening_menu(self, request: EveningMenuRequest) -> EveningMenuPlan:
