@@ -21,19 +21,29 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY app ./app
 
 # ==============================================================================
-# Stage 2: Runtime - Minimal non-root production image
+# Stage 2: AWS Lambda Web Adapter binary (serverless / FaaS readiness)
+# ==============================================================================
+FROM public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 AS lambda-adapter
+
+# ==============================================================================
+# Stage 3: Runtime - Minimal non-root production image (Docker, K8s & Lambda)
 # ==============================================================================
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/app/.venv/bin:$PATH"
+    PATH="/app/.venv/bin:$PATH" \
+    PORT=8000 \
+    VINUM_DB_PATH="/tmp/vinum_pulse.db"
 
 WORKDIR /app
 
 # Create a dedicated non-privileged user and group
 RUN groupadd --system --gid 10001 appgroup && \
     useradd --system --uid 10001 --gid appgroup --no-create-home --shell /usr/sbin/nologin appuser
+
+# Install AWS Lambda Web Adapter extension (inert outside AWS Lambda)
+COPY --from=lambda-adapter /lambda-adapter /opt/extensions/lambda-adapter
 
 # Copy pre-built virtual environment and application package from builder stage
 COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
