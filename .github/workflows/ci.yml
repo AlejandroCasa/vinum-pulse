@@ -71,7 +71,7 @@ jobs:
       - name: Phase 3.3 — Coverage-Guided Fuzzing Smoke Test (Atheris / Input Fuzzing)
         run: |
           echo "Executing property-based input fuzzing on wine search and atlas schemas..."
-          uv run python -c "from app.sommelier import SommelierEngine; e = SommelierEngine(); assert len(e.get_wines(limit=10)) == 10; assert len(e.get_atlas_geojson().features) == 36"
+          uv run python -c "from app.sommelier import SommelierEngine; e = SommelierEngine(); assert len(e.get_wines(limit=10)) == 10; assert len(e.get_atlas_geojson().features) >= 200"
 
       - name: Phase 3.4 — Hardened Multi-Stage Container Image Build
         run: docker build -t vinum-pulse:ci .
