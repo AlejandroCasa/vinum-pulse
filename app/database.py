@@ -15,6 +15,20 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="VINUM_", extra="ignore")
 
     database_url: str = "sqlite:///./vinum_pulse.db"
+    db_path: str | None = None
+    gastronomy_pg_url: str | None = None
+    mise_en_place_base_url: str = "http://127.0.0.1:8001"
+    rate_limit_enabled: bool = True
+    rate_limit_capacity: int = 60
+    rate_limit_refill_per_sec: float = 1.0
+    max_body_bytes: int = 32768
+
+    @property
+    def effective_database_url(self) -> str:
+        """Resolve SQLite URL from VINUM_DB_PATH when explicitly configured."""
+        if self.db_path:
+            return f"sqlite:///{self.db_path}"
+        return self.database_url
 
 
 class Base(DeclarativeBase):
@@ -32,7 +46,7 @@ def create_db_engine(database_url: str) -> Engine:
 
 
 settings = Settings()
-engine = create_db_engine(settings.database_url)
+engine = create_db_engine(settings.effective_database_url)
 SessionLocal = sessionmaker(
     bind=engine, autoflush=False, expire_on_commit=False, class_=Session
 )

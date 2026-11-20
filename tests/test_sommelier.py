@@ -2,8 +2,15 @@
 
 import pytest
 
+from app.planner import (
+    compute_ambience_tip,
+    compute_fridge_tip,
+    compute_uncork_tip,
+    compute_vintage_status,
+)
 from app.schemas import (
     DishPairingRequest,
+    EveningMenuRequest,
     SensoryRadar,
     WineProfile,
     WineType,
@@ -18,14 +25,61 @@ def engine() -> SommelierEngine:
 
 
 def test_catalog_initialization(engine: SommelierEngine) -> None:
-    """Verify default catalog contains curated Spanish wines and dishes."""
+    """Verify default catalog contains 200 European wines and 45 dishes."""
     wines = engine.get_wines()
     dishes = engine.get_dishes()
 
-    assert len(wines) == len(CURATED_WINES)
-    assert len(dishes) == len(CURATED_DISHES)
-    assert len(wines) >= 10
-    assert len(dishes) == 12
+    assert len(wines) == len(CURATED_WINES) == 200
+    assert len(dishes) == len(CURATED_DISHES) == 45
+    assert len({w.id for w in wines}) == 200
+    assert len({w.name for w in wines}) == 200
+    assert len({d.id for d in dishes}) == 45
+
+
+def test_european_catalog_country_distribution_and_bounds() -> None:
+    """Verify exact country wine counts and geographic bounding boxes."""
+    bounds: dict[str, tuple[float, float, float, float]] = {
+        "España": (35.5, 43.8, -9.5, 3.5),
+        "Francia": (42.0, 50.5, -2.0, 8.5),
+        "Italia": (36.5, 47.2, 7.0, 18.5),
+        "Inglaterra": (50.0, 52.0, -2.5, 2.0),
+    }
+    expected_counts = {
+        "España": 65,
+        "Francia": 55,
+        "Italia": 55,
+        "Inglaterra": 25,
+    }
+    counts: dict[str, int] = {}
+    for wine in CURATED_WINES:
+        assert wine.country in bounds
+        lat_min, lat_max, lon_min, lon_max = bounds[wine.country]
+        assert lat_min <= wine.latitude <= lat_max, f"{wine.id} lat out of bounds"
+        assert lon_min <= wine.longitude <= lon_max, f"{wine.id} lon out of bounds"
+        assert wine.classification in (
+            "D.O.",
+            "D.O.Ca.",
+            "D.O.Q.",
+            "AOC",
+            "DOC",
+            "DOCG",
+            "PDO",
+        )
+        counts[wine.country] = counts.get(wine.country, 0) + 1
+    assert counts == expected_counts
+
+
+def test_filter_wines_and_regions_by_country_in_memory(
+    engine: SommelierEngine,
+) -> None:
+    """Verify in-memory country filtering for wines and regions."""
+    french = engine.get_wines(country="Francia")
+    assert len(french) == 55
+    assert all(w.country == "Francia" for w in french)
+
+    italian_regions = engine.get_regions(country="Italia")
+    assert len(italian_regions) == 8
+    assert all(r.country == "Italia" for r in italian_regions)
 
 
 def test_get_wine_by_id(engine: SommelierEngine) -> None:
@@ -45,7 +99,7 @@ def test_get_dish_by_id(engine: SommelierEngine) -> None:
     dish = engine.get_dish_by_id("chuleton-brasa")
     assert dish is not None
     assert dish.name == "Chuletón de vaca vieja a la brasa"
-    assert dish.category == "Carnes"
+    assert dish.category == "Carnes y Caza"
 
     non_existent = engine.get_dish_by_id("non-existent-dish")
     assert non_existent is None
@@ -273,3 +327,269 @@ def test_db_backed_engine_pagination_search_and_pairing() -> None:
         db_sommelier.recommend_pairing(
             DishPairingRequest(dish_id="chuleton-brasa", max_budget_eur=1.0)
         )
+
+
+def test_atlas_geojson_generation() -> None:
+    """Verify SommelierEngine.get_atlas_geojson produces valid RFC 7946 GeoJSON."""
+    engine = SommelierEngine()
+
+    # Wineries layer
+    wineries_fc = engine.get_atlas_geojson(layer="wineries")
+    assert wineries_fc.type == "FeatureCollection"
+    assert len(wineries_fc.features) == 200
+    all_appellations = {f.properties["appellation"] for f in wineries_fc.features}
+    assert len(all_appellations) == 32
+
+    # Regions layer
+    regions_fc = engine.get_atlas_geojson(layer="regions")
+    assert regions_fc.type == "FeatureCollection"
+    assert len(regions_fc.features) == 32
+    for feat in regions_fc.features:
+        assert feat.properties["feature_type"] == "region"
+        assert feat.properties["winery_count"] >= 1
+
+    # All layer
+    all_fc = engine.get_atlas_geojson(layer="all")
+    assert len(all_fc.features) == 232
+
+    # Country-filtered layer
+    uk_fc = engine.get_atlas_geojson(layer="all", country="Inglaterra")
+    assert len(uk_fc.features) == 29
+    assert all(f.properties["country"] == "Inglaterra" for f in uk_fc.features)
+
+
+def test_gastronomic_sections_coverage() -> None:
+    """Verify all 9 required gastronomic sections are present in catalog."""
+    expected_sections = [
+        "Entrantes y Cuchara",
+        "Ensaladas y Huerta",
+        "Tapas y Pintxos",
+        "Embutidos y Quesos",
+        "Pescados y Mariscos",
+        "Arroces",
+        "Carnes y Caza",
+        "Postres y Dulces",
+        "Platos Vegetarianos y Setas",
+    ]
+    catalog_categories = {d.category for d in CURATED_DISHES}
+    for section in expected_sections:
+        assert section in catalog_categories
+        matching = [d for d in CURATED_DISHES if d.category == section]
+        assert len(matching) >= 2
+
+
+def test_wine_profile_bottle_silhouette_detection() -> None:
+    """Verify automatic bottle silhouette deduction based on wine type and terroir."""
+    w_fortified = WineProfile(
+        id="t-jerez",
+        name="Tío Pepe",
+        winery="González Byass",
+        appellation="D.O. Jerez-Xérès-Sherry",
+        wine_type=WineType.FORTIFIED,
+        vintage=2020,
+        price_eur=12.0,
+        serving_temp_c=8.0,
+        glass_type="Copita",
+        sensory=SensoryRadar(body=5.0, acidity=7.0, tannins=1.0, fruit=5.0, oak=6.0),
+        tasting_notes="Salino y almendrado.",
+    )
+    assert w_fortified.bottle_silhouette == "Jerezana"
+
+    w_sparkling = WineProfile(
+        id="t-cava",
+        name="Cava Brut",
+        winery="Gramona",
+        appellation="D.O. Corpinnat / Penedès",
+        wine_type=WineType.SPARKLING,
+        vintage=2019,
+        price_eur=25.0,
+        serving_temp_c=8.0,
+        glass_type="Tulipa",
+        sensory=SensoryRadar(body=5.0, acidity=8.0, tannins=1.0, fruit=6.0, oak=4.0),
+        tasting_notes="Burbuja fina y notas de levadura.",
+    )
+    assert w_sparkling.bottle_silhouette == "Espumosa"
+
+    w_bierzo = WineProfile(
+        id="t-bierzo",
+        name="Pétalos del Bierzo",
+        winery="Descendientes de J. Palacios",
+        appellation="D.O. Bierzo",
+        wine_type=WineType.RED,
+        vintage=2021,
+        price_eur=20.0,
+        serving_temp_c=15.0,
+        glass_type="Borgoña",
+        sensory=SensoryRadar(body=6.5, acidity=7.0, tannins=6.0, fruit=8.0, oak=5.0),
+        tasting_notes="Fragancia de violetas y pizarra.",
+    )
+    assert w_bierzo.bottle_silhouette == "Borgoña"
+
+    w_rioja = WineProfile(
+        id="t-rioja",
+        name="Rioja Crianza",
+        winery="Bodega Riojana",
+        appellation="D.O.Ca. Rioja",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=15.0,
+        serving_temp_c=16.0,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=7.0, acidity=6.5, tannins=7.0, fruit=7.5, oak=6.5),
+        tasting_notes="Vainilla y fruta madura.",
+    )
+    assert w_rioja.bottle_silhouette == "Bordelesa"
+
+    w_custom = WineProfile(
+        id="t-custom",
+        name="Custom Label",
+        winery="Bodega Custom",
+        appellation="D.O.Ca. Rioja",
+        wine_type=WineType.RED,
+        vintage=2020,
+        price_eur=15.0,
+        serving_temp_c=16.0,
+        glass_type="Burdeos",
+        bottle_silhouette="Jerezana",
+        sensory=SensoryRadar(body=7.0, acidity=6.5, tannins=7.0, fruit=7.5, oak=6.5),
+        tasting_notes="Personalizado.",
+    )
+    assert w_custom.bottle_silhouette == "Jerezana"
+
+
+def test_plan_evening_menu_success(engine: SommelierEngine) -> None:
+    """Verify evening menu plan produces 3 distinct wines within budget."""
+    req = EveningMenuRequest(
+        occasion="Cena Romántica",
+        starter_dish_id="salmorejo-cordobes",
+        main_dish_id="chuleton-brasa",
+        dessert_dish_id="tarta-queso-idiazabal",
+        total_budget_eur=120.0,
+    )
+    plan = engine.plan_evening_menu(req)
+
+    assert plan.occasion == "Cena Romántica"
+    assert len(plan.courses) == 3
+    assert plan.total_price_eur <= 120.0
+    assert len({c.wine.id for c in plan.courses}) == 3
+    assert plan.printable_card_title == "Menú Maridaje Sommelier · Cena Romántica"
+    assert len(plan.occasion_ambience_tip) > 10
+    assert len(plan.progression_summary) > 10
+    assert plan.average_compatibility_score > 0.0
+
+    for i, course in enumerate(plan.courses, start=1):
+        assert course.course_number == i
+        assert len(course.course_title) > 0
+        assert len(course.fridge_tip) > 5
+        assert len(course.uncork_tip) > 5
+        assert course.vintage_semaphore in ("green", "amber", "gold")
+        assert len(course.vintage_status_label) > 5
+        assert len(course.sommelier_note) > 5
+
+
+def test_plan_evening_menu_unknown_dish_raises(engine: SommelierEngine) -> None:
+    """Verify unknown dish slug raises descriptive ValueError."""
+    req = EveningMenuRequest(
+        starter_dish_id="unknown-dish-slug",
+        main_dish_id="chuleton-brasa",
+        dessert_dish_id="tarta-queso-idiazabal",
+    )
+    with pytest.raises(ValueError, match="not found in gastronomic catalog"):
+        engine.plan_evening_menu(req)
+
+
+def test_plan_evening_menu_insufficient_budget_raises(
+    engine: SommelierEngine,
+) -> None:
+    """Verify insufficient budget raises descriptive ValueError."""
+    req = EveningMenuRequest(
+        starter_dish_id="salmorejo-cordobes",
+        main_dish_id="chuleton-brasa",
+        dessert_dish_id="tarta-queso-idiazabal",
+        total_budget_eur=10.0,
+    )
+    with pytest.raises(
+        ValueError, match="insufficient for a 3-bottle evening menu plan"
+    ):
+        engine.plan_evening_menu(req)
+
+
+def test_planner_helper_functions() -> None:
+    """Verify fridge, uncork, vintage semaphore, and ambience helper logic."""
+    test_wine = WineProfile(
+        id="t-wine",
+        name="Vino Test",
+        winery="Bodega Test",
+        appellation="D.O.Ca. Rioja",
+        wine_type=WineType.RED,
+        vintage=2024,
+        price_eur=18.0,
+        serving_temp_c=8.0,
+        decant_minutes=60,
+        glass_type="Burdeos",
+        sensory=SensoryRadar(body=7.0, acidity=7.0, tannins=7.0, fruit=7.0, oak=7.0),
+        tasting_notes="Prueba",
+        aging_potential_years=4,
+    )
+
+    # Fridge tip branches
+    tip_cold = compute_fridge_tip(test_wine)
+    assert "90 min" in tip_cold
+
+    test_wine.serving_temp_c = 12.0
+    assert "45 min" in compute_fridge_tip(test_wine)
+
+    test_wine.serving_temp_c = 15.0
+    assert "20 min" in compute_fridge_tip(test_wine)
+
+    test_wine.serving_temp_c = 18.0
+    assert "15 min" in compute_fridge_tip(test_wine)
+
+    # Uncork tip branches
+    test_wine.decant_minutes = 45
+    assert "decantar 45 min" in compute_uncork_tip(test_wine)
+
+    test_wine.decant_minutes = 15
+    assert "Descorchar 15 min" in compute_uncork_tip(test_wine)
+
+    test_wine.decant_minutes = 0
+    test_wine.wine_type = WineType.SPARKLING
+    assert "burbuja fina" in compute_uncork_tip(test_wine)
+
+    test_wine.wine_type = WineType.RED
+    assert "directamente al momento" in compute_uncork_tip(test_wine)
+
+    # Vintage status branches
+    test_wine.vintage = 2020
+    test_wine.aging_potential_years = 20
+    sem_gold, label_gold = compute_vintage_status(test_wine, current_year=2026)
+    assert sem_gold == "gold"
+    assert "Gran Reserva" in label_gold
+
+    test_wine.vintage = 2025
+    test_wine.aging_potential_years = 4
+    sem_young, label_young = compute_vintage_status(test_wine, current_year=2026)
+    assert sem_young == "green"
+    assert "Joven y vibrante" in label_young
+
+    test_wine.vintage = 2020
+    test_wine.aging_potential_years = 8
+    sem_peak, label_peak = compute_vintage_status(test_wine, current_year=2026)
+    assert sem_peak == "green"
+    assert "En su cumbre" in label_peak
+
+    test_wine.vintage = 2010
+    test_wine.aging_potential_years = 5
+    sem_amber, label_amber = compute_vintage_status(test_wine, current_year=2026)
+    assert sem_amber == "amber"
+    assert "evolucionado" in label_amber
+
+    # Ambience tip branches
+    tip_romantic = compute_ambience_tip("Cena Romántica")
+    assert "romántica" in tip_romantic.lower() or "copas" in tip_romantic
+    assert "cubitera" in compute_ambience_tip("Barbacoa con amigos")
+    assert "mantel de lino" in compute_ambience_tip("Comida Familiar de Domingo")
+    assert "pintxos" in compute_ambience_tip("Tardeo & Tapas Gourmet")
+    assert "Ambiente relajado" in compute_ambience_tip("Evento Especial")
+    assert "pintxos" in compute_ambience_tip("Tardeo & Tapas Gourmet")
+    assert "Ambiente relajado" in compute_ambience_tip("Evento Especial")

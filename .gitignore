@@ -16,3 +16,8 @@ Thumbs.db
 
 # Local SQLite database
 *.db
+
+# Environment & Secrets Hygiene
+.env
+.env.*
+!.env.example
