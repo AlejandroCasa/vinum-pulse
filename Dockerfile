@@ -38,6 +38,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Apply Debian OS security upgrades and clean apt cache to remediate base image CVEs
+RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create a dedicated non-privileged user and group
 RUN groupadd --system --gid 10001 appgroup && \
     useradd --system --uid 10001 --gid appgroup --no-create-home --shell /usr/sbin/nologin appuser
