@@ -5,7 +5,7 @@ import math
 import uuid
 from typing import Any
 
-from sqlalchemy import Engine, func, inspect, or_, select, text
+from sqlalchemy import Engine, TextClause, func, inspect, or_, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.catalog import CLIMATE_MAP as CLIMATE_MAP
@@ -112,17 +112,37 @@ def _build_region_feature(
     )
 
 
-_WINE_MIGRATION_COLUMNS: tuple[tuple[str, str], ...] = (
-    ("country", "VARCHAR(64) DEFAULT 'España'"),
-    ("classification", "VARCHAR(32) DEFAULT 'D.O.'"),
-    ("latitude", "FLOAT DEFAULT 40.4168"),
-    ("longitude", "FLOAT DEFAULT -3.7038"),
-    ("altitude_m", "INTEGER DEFAULT 500"),
-    ("soil_type", "VARCHAR(128) DEFAULT 'Arcilloso-calcáreo'"),
-    ("climate", "VARCHAR(128) DEFAULT 'Continental'"),
-    ("aging_potential_years", "INTEGER DEFAULT 5"),
-    ("tagline", "VARCHAR(256) DEFAULT ''"),
-    ("image_url", "VARCHAR(512) DEFAULT NULL"),
+_WINE_MIGRATION_STMTS: tuple[tuple[str, TextClause], ...] = (
+    (
+        "country",
+        text("ALTER TABLE wines ADD COLUMN country VARCHAR(64) DEFAULT 'España'"),
+    ),
+    (
+        "classification",
+        text("ALTER TABLE wines ADD COLUMN classification VARCHAR(32) DEFAULT 'D.O.'"),
+    ),
+    ("latitude", text("ALTER TABLE wines ADD COLUMN latitude FLOAT DEFAULT 40.4168")),
+    ("longitude", text("ALTER TABLE wines ADD COLUMN longitude FLOAT DEFAULT -3.7038")),
+    ("altitude_m", text("ALTER TABLE wines ADD COLUMN altitude_m INTEGER DEFAULT 500")),
+    (
+        "soil_type",
+        text(
+            "ALTER TABLE wines ADD COLUMN soil_type VARCHAR(128) DEFAULT 'Arcilloso-calcáreo'"
+        ),
+    ),
+    (
+        "climate",
+        text("ALTER TABLE wines ADD COLUMN climate VARCHAR(128) DEFAULT 'Continental'"),
+    ),
+    (
+        "aging_potential_years",
+        text("ALTER TABLE wines ADD COLUMN aging_potential_years INTEGER DEFAULT 5"),
+    ),
+    ("tagline", text("ALTER TABLE wines ADD COLUMN tagline VARCHAR(256) DEFAULT ''")),
+    (
+        "image_url",
+        text("ALTER TABLE wines ADD COLUMN image_url VARCHAR(512) DEFAULT NULL"),
+    ),
 )
 
 
@@ -133,10 +153,9 @@ def _ensure_wine_terroir_columns(db_engine: Engine) -> None:
         return
     existing = {col["name"] for col in inspector.get_columns("wines")}
     with db_engine.begin() as conn:
-        for col_name, col_def in _WINE_MIGRATION_COLUMNS:
+        for col_name, stmt in _WINE_MIGRATION_STMTS:
             if col_name not in existing:
-                stmt_sql = f"ALTER TABLE wines ADD COLUMN {col_name} {col_def}"
-                conn.execute(text(stmt_sql))  # nosec B608
+                conn.execute(stmt)
 
 
 def _sync_wines(session: Session) -> None:
