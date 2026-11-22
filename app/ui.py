@@ -1,6 +1,6 @@
 """UI templates and interactive 4-tab SPA workspace for Vinum Pulse."""
 
-DASHBOARD_HTML = """<!DOCTYPE html>
+_DASHBOARD_TEMPLATE = """<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -272,10 +272,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 <!-- Global KPI Pills -->
                 <div id="global-kpis" class="flex flex-wrap items-center gap-2 text-[11px] font-mono">
                     <span id="kpi-wines-count" class="px-2.5 py-1 rounded bg-butter border border-espresso/12 text-espresso tabular-nums">
-                        36 Vinos
+                        __KPI_WINES_COUNT__ Vinos
                     </span>
                     <span id="kpi-regions-count" class="px-2.5 py-1 rounded bg-butter border border-espresso/12 text-bordeaux tabular-nums">
-                        12 D.O.
+                        __KPI_REGIONS_COUNT__ D.O.
                     </span>
                     <button type="button" id="kpi-cellar-pill" onclick="switchTab('bodega')" class="px-2.5 py-1 rounded bg-cream hover:bg-butter border border-bordeaux/25 text-espresso transition cursor-pointer tabular-nums flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-sage"></span>
@@ -330,7 +330,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                             Atlas Cartográfico de Terroirs &amp; Bodegas D.O.
                         </h2>
                         <p class="font-serif italic text-base text-walnut">
-                            12 Denominaciones de Origen y 36 bodegas emblemáticas de España
+                            __KPI_REGIONS_COUNT__ Denominaciones de Origen y __KPI_WINES_COUNT__ bodegas emblemáticas en __KPI_COUNTRIES_COUNT__ países
                         </p>
                     </div>
 
@@ -342,7 +342,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                             <button type="button" data-layer="all" class="atlas-layer-btn px-2.5 py-1 rounded-xs text-walnut hover:text-espresso cursor-pointer">Todo</button>
                         </div>
                         <span id="atlas-status-badge" class="px-3 py-1.5 text-xs font-mono rounded bg-butter text-bordeaux border border-bordeaux/20 tabular-nums">
-                            32 Regiones · 200 Bodegas
+                            __KPI_REGIONS_COUNT__ Regiones · __KPI_WINES_COUNT__ Bodegas
                         </span>
                     </div>
                 </div>
@@ -351,7 +351,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 <div class="space-y-2">
                     <div class="flex justify-between items-center text-xs font-mono text-walnut">
                         <span>Atlas Vitivinícola Europeo · Selección de País</span>
-                        <span id="atlas-selected-country-label" class="text-bordeaux font-medium">Europa (4 Países)</span>
+                        <span id="atlas-selected-country-label" class="text-bordeaux font-medium">Europa (__KPI_COUNTRIES_COUNT__ Países)</span>
                     </div>
                     <div id="country-pills-bar" role="group" aria-label="Filtro de país del atlas" class="flex flex-wrap gap-2 text-xs font-mono">
                         <button type="button" data-country="" class="country-pill do-pill px-3 py-1.5 rounded-sm is-active cursor-pointer">Todos (Europa)</button>
@@ -386,7 +386,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                                         <span class="w-2 h-2 rounded-full bg-sage"></span>
                                         Atlas Cartográfico Vectorial (Modo Determinista)
                                     </span>
-                                    <span id="svg-fallback-counter" class="text-bordeaux font-medium">12 D.O. / 36 Bodegas</span>
+                                    <span id="svg-fallback-counter" class="text-bordeaux font-medium">__KPI_REGIONS_COUNT__ D.O. / __KPI_WINES_COUNT__ Bodegas</span>
                                 </div>
                                 <div id="svg-map-canvas" class="w-full h-[380px] flex items-center justify-center"></div>
                             </div>
@@ -705,7 +705,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             <section id="catalog-section" class="space-y-6">
                 <div class="flex flex-wrap items-end justify-between gap-4 border-b border-espresso/15 pb-4">
                     <div class="space-y-1">
-                        <div class="text-xs font-mono text-bordeaux uppercase tracking-wider">Catálogo Completo · 12 D.O.</div>
+                        <div class="text-xs font-mono text-bordeaux uppercase tracking-wider">Catálogo Completo · __KPI_REGIONS_COUNT__ D.O.</div>
                         <h2 class="font-serif text-3xl text-espresso tracking-tight">Bodega Española de Referencia</h2>
                         <p class="font-serif italic text-sm text-walnut">
                             Explora, filtra por Denominación de Origen o estilo, y añade etiquetas directamente a tu bodega personal
@@ -729,7 +729,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                         <div class="md:col-span-2">
                             <label for="catalog-country-filter" class="sr-only">Filtrar por País</label>
                             <select id="catalog-country-filter" class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm font-sans text-espresso focus:border-bordeaux focus:ring-0">
-                                <option value="">Todos los países (4)</option>
+                                <option value="">Todos los países (__KPI_COUNTRIES_COUNT__)</option>
                                 <option value="España">España</option>
                                 <option value="Francia">Francia</option>
                                 <option value="Italia">Italia</option>
@@ -739,7 +739,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                         <div class="md:col-span-3">
                             <label for="catalog-do-filter" class="sr-only">Filtrar por Denominación de Origen</label>
                             <select id="catalog-do-filter" class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm font-sans text-espresso focus:border-bordeaux focus:ring-0">
-                                <option value="">Todas las Denominaciones (32)</option>
+                                <option value="">Todas las Denominaciones (__KPI_REGIONS_COUNT__)</option>
                             </select>
                         </div>
                         <div class="md:col-span-3">
@@ -1358,8 +1358,12 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         function updateCatalogGlobalKpis() {
             const winesEl = document.getElementById("kpi-wines-count");
             const regionsEl = document.getElementById("kpi-regions-count");
-            if (winesEl && allWines.length > 0) winesEl.textContent = `${allWines.length} Vinos`;
-            if (regionsEl && allRegions.length > 0) regionsEl.textContent = `${allRegions.length} D.O.`;
+            const badgeEl = document.getElementById("atlas-status-badge");
+            if (winesEl) winesEl.textContent = `${allWines.length} Vinos`;
+            if (regionsEl) regionsEl.textContent = `${allRegions.length} D.O.`;
+            if (badgeEl && !atlasCountryFilter) {
+                badgeEl.textContent = `${allRegions.length} Regiones · ${allWines.length} Bodegas`;
+            }
         }
 
         function showError(msg) {
@@ -2190,7 +2194,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             document.querySelectorAll(".do-pill").forEach(b => b.classList.remove("is-active"));
             if (activeBtn) activeBtn.classList.add("is-active");
 
-            document.getElementById("atlas-selected-do-label").textContent = doName || "Todas las regiones (12 D.O.)";
+            document.getElementById("atlas-selected-do-label").textContent = doName || `Todas las regiones (${allRegions.length} D.O.)`;
 
             const matching = doName ? atlasFeatures.filter(f => f.properties.appellation === doName) : atlasFeatures;
             if (matching.length > 0) {
@@ -3171,3 +3175,19 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </script>
 </body>
 </html>"""
+
+
+def render_dashboard_html(
+    wine_count: int = 200,
+    region_count: int = 32,
+    country_count: int = 4,
+) -> str:
+    """Render the dashboard HTML with live database KPI counters."""
+    return (
+        _DASHBOARD_TEMPLATE.replace("__KPI_WINES_COUNT__", str(wine_count))
+        .replace("__KPI_REGIONS_COUNT__", str(region_count))
+        .replace("__KPI_COUNTRIES_COUNT__", str(country_count))
+    )
+
+
+DASHBOARD_HTML: str = render_dashboard_html()

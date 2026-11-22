@@ -1,8 +1,10 @@
 """Integration tests for Vinum Pulse FastAPI endpoints."""
 
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
-from app.main import app
+from app.main import app, sommelier
+from app.sommelier import SommelierEngine
 
 client = TestClient(app)
 
@@ -487,3 +489,40 @@ def test_dashboard_ui_european_atlas_and_country_filters() -> None:
     assert "COUNTRY_BOUNDS" in html
     assert "flyToBounds" in html
     assert "filterAtlasByCountry" in html
+
+
+def test_dashboard_ui_dynamic_header_kpis() -> None:
+    """Verify GET / renders live DB catalog counts instead of hardcoded 36/12 labels."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    assert "200 Vinos" in html
+    assert "32 D.O." in html
+    assert "32 Regiones · 200 Bodegas" in html
+    assert "Europa (4 Países)" in html
+    assert "Todos los países (4)" in html
+    assert "Todas las Denominaciones (32)" in html
+    assert "36 Vinos" not in html
+    assert "12 D.O." not in html
+    assert "36 bodegas emblemáticas" not in html
+
+
+def test_dashboard_ui_dynamic_header_kpis_reflect_catalog_changes(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify GET / reflects updated catalog stats and in-memory fallback counts."""
+    in_memory_engine = SommelierEngine(wines=sommelier.get_wines()[:3])
+    wines_n, regions_n, countries_n = in_memory_engine.get_catalog_stats()
+    assert wines_n == 3
+    assert regions_n >= 1
+    assert countries_n >= 1
+
+    monkeypatch.setattr(sommelier, "get_catalog_stats", lambda: (225, 35, 5))
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+    assert "225 Vinos" in html
+    assert "35 D.O." in html
+    assert "35 Regiones · 225 Bodegas" in html
+    assert "Europa (5 Países)" in html

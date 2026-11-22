@@ -28,7 +28,7 @@ from app.security import (
     TokenBucketRateLimiter,
 )
 from app.sommelier import SommelierEngine, init_db
-from app.ui import DASHBOARD_HTML
+from app.ui import render_dashboard_html
 
 app = FastAPI(
     title="Vinum Pulse",
@@ -241,4 +241,11 @@ def remove_from_cellar(
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard"])
 def get_dashboard() -> HTMLResponse:
     """Serve the interactive single-page sommelier dashboard."""
-    return HTMLResponse(content=DASHBOARD_HTML)
+    wine_count, region_count, country_count = sommelier.get_catalog_stats()
+    return HTMLResponse(
+        content=render_dashboard_html(
+            wine_count=wine_count,
+            region_count=region_count,
+            country_count=country_count,
+        )
+    )
