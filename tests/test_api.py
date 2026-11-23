@@ -458,6 +458,10 @@ def test_dashboard_ui_contextual_bridges_and_cellar_workspace() -> None:
     assert "renderCatalogPaginationBar" in html
     assert 'fetch("/api/v1/wines?limit=500")' in html
     assert 'id="progressionChart"' in html
+    assert "formatProgressionCourseLabel" in html
+    assert "wrapChartLabel" in html
+    assert "autoSkip: false" in html
+    assert 'c.wine.name.split(" ").slice(0, 2)' not in html
     assert 'id="cellar-analytics-grid"' in html
     assert 'id="cellar-add-form"' in html
     assert 'id="cellar-inventory-list"' in html

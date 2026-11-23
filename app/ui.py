@@ -953,7 +953,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                                 Progresión Validada
                             </span>
                         </div>
-                        <div class="relative w-full h-[220px]">
+                        <div class="relative w-full h-[285px] sm:h-[300px]">
                             <canvas id="progressionChart"></canvas>
                         </div>
                     </div>
@@ -3351,6 +3351,34 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             };
         }
 
+        function wrapChartLabel(text, maxLineChars = 22) {
+            const clean = String(text || "").trim();
+            if (!clean) return [];
+            const words = clean.split(" ").filter(Boolean);
+            const lines = [];
+            let current = "";
+            words.forEach(word => {
+                if (!current) {
+                    current = word;
+                } else if (`${current} ${word}`.length <= maxLineChars) {
+                    current = `${current} ${word}`;
+                } else {
+                    lines.push(current);
+                    current = word;
+                }
+            });
+            if (current) lines.push(current);
+            return lines;
+        }
+
+        function formatProgressionCourseLabel(course, idx) {
+            const courseNum = (course && course.course_number) || (idx + 1);
+            const rawTitle = (course && course.course_title) || `${courseNum}.º Pase`;
+            const shortStage = rawTitle.includes("·") ? rawTitle.split("·").pop().trim() : rawTitle;
+            const wineName = (course && course.wine && course.wine.name) ? course.wine.name : "Vino seleccionado";
+            return [`${courseNum}.º Pase · ${shortStage}`, ...wrapChartLabel(wineName, 22)];
+        }
+
         function renderProgressionChart(courses, isValid) {
             const badge = document.getElementById("plan-progression-badge");
             if (badge) {
@@ -3359,7 +3387,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             const canvas = document.getElementById("progressionChart");
             if (!canvas || typeof Chart === "undefined" || !courses || courses.length === 0) return;
 
-            const labels = courses.map((c, idx) => `${idx + 1}.º ${(c.wine && c.wine.name) ? c.wine.name.split(" ").slice(0, 2).join(" ") : "Pase"}`);
+            const labels = courses.map((c, idx) => formatProgressionCourseLabel(c, idx));
             const extract = (key) => courses.map(c => (c.wine && c.wine.sensory) ? c.wine.sensory[key] : 5.0);
 
             if (progressionChart) progressionChart.destroy();
@@ -3377,14 +3405,45 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 10, left: 28, right: 28, bottom: 6 }
+                    },
                     scales: {
-                        y: { min: 0, max: 10, ticks: { stepSize: 2, color: "#6A5A4F", font: { family: '"JetBrains Mono"', size: 10 } }, grid: { color: "rgba(35, 27, 22, 0.08)" } },
-                        x: { ticks: { color: "#231B16", font: { family: '"Work Sans"', size: 11 } }, grid: { display: false } }
+                        y: {
+                            min: 0,
+                            max: 10,
+                            ticks: { stepSize: 2, color: "#6A5A4F", font: { family: '"JetBrains Mono"', size: 10 } },
+                            grid: { color: "rgba(35, 27, 22, 0.08)" }
+                        },
+                        x: {
+                            offset: true,
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 0,
+                                minRotation: 0,
+                                padding: 8,
+                                color: "#231B16",
+                                font: { family: '"Work Sans", sans-serif', size: 11, weight: "500" }
+                            },
+                            grid: { display: false }
+                        }
                     },
                     plugins: {
                         legend: {
                             position: "bottom",
-                            labels: { boxWidth: 10, color: "#6A5A4F", font: { family: '"JetBrains Mono"', size: 10 } }
+                            labels: { boxWidth: 10, padding: 14, color: "#6A5A4F", font: { family: '"JetBrains Mono"', size: 10 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => {
+                                    if (!items || !items.length) return "";
+                                    const c = courses[items[0].dataIndex];
+                                    if (!c) return "";
+                                    const wineName = (c.wine && c.wine.name) || "";
+                                    const dishName = (c.dish && c.dish.name) || c.dish_name || "";
+                                    return `${(c.course_number || (items[0].dataIndex + 1))}.º ${wineName}${dishName ? " — " + dishName : ""}`;
+                                }
+                            }
                         }
                     }
                 }
