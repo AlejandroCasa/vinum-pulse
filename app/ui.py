@@ -78,10 +78,10 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             background-color: #EFE7D6;
             padding-left: 0.75rem;
         }
-        .style-tab, .catalog-type-pill, .atlas-layer-btn, .atlas-basemap-btn, .cellar-filter-btn {
+        .style-tab, .catalog-type-pill, .catalog-view-btn, .catalog-page-btn, .atlas-layer-btn, .atlas-basemap-btn, .cellar-filter-btn {
             transition: all 180ms var(--ease-bistro);
         }
-        .atlas-layer-btn.is-active, .atlas-basemap-btn.is-active, .catalog-type-pill.is-active, .cellar-filter-btn.is-active {
+        .atlas-layer-btn.is-active, .atlas-basemap-btn.is-active, .catalog-type-pill.is-active, .catalog-view-btn.is-active, .catalog-page-btn.is-active, .cellar-filter-btn.is-active {
             background-color: #6B1D28;
             border-color: #6B1D28;
             color: #F7F2E8;
@@ -700,30 +700,31 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 </section>
             </div>
 
-            <!-- Full Searchable & Filterable Spanish D.O. Wine Catalog -->
-            <section id="catalog-section" class="space-y-6">
+            <!-- Full Searchable, Paginated & Groupable European Wine Catalog -->
+            <section id="catalog-section" class="space-y-5">
                 <div class="flex flex-wrap items-end justify-between gap-4 border-b border-espresso/15 pb-4">
                     <div class="space-y-1">
-                        <div class="text-xs font-mono text-bordeaux uppercase tracking-wider">Catálogo Completo · __KPI_REGIONS_COUNT__ D.O.</div>
-                        <h2 class="font-serif text-3xl text-espresso tracking-tight">Bodega Española de Referencia</h2>
+                        <div class="text-xs font-mono text-bordeaux uppercase tracking-wider">Catálogo Completo · __KPI_REGIONS_COUNT__ D.O. · __KPI_COUNTRIES_COUNT__ Países</div>
+                        <h2 class="font-serif text-3xl text-espresso tracking-tight">Carta Europea de Referencia</h2>
                         <p class="font-serif italic text-sm text-walnut">
-                            Explora, filtra por Denominación de Origen o estilo, y añade etiquetas directamente a tu bodega personal
+                            Explora, filtra por país, denominación, estilo o rango de precio, y navega por páginas o agrupaciones con agilidad
                         </p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span id="catalog-count-label" class="text-xs font-mono text-walnut tabular-nums">200 vinos</span>
+                        <span id="catalog-count-label" class="text-xs font-mono text-walnut tabular-nums">__KPI_WINES_COUNT__ vinos</span>
                         <button type="button" id="btn-catalog-reset" class="hidden text-xs font-mono text-bordeaux underline underline-offset-4 cursor-pointer">
                             Limpiar filtros
                         </button>
                     </div>
                 </div>
 
-                <!-- Search & Filter Toolbar -->
-                <div class="bg-butter/50 border border-espresso/12 rounded p-4 space-y-4">
+                <!-- Scalable Multi-Facet Filter & Organization Workbench -->
+                <div class="bg-butter/50 border border-espresso/12 rounded p-4 space-y-3.5">
+                    <!-- Row 1: Search, Country, Appellation, Price Band -->
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                         <div class="md:col-span-4">
                             <label for="catalog-search-input" class="sr-only">Buscar vino o bodega</label>
-                            <input id="catalog-search-input" type="search" placeholder="Buscar vino, bodega, país o nota de cata..." class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm text-espresso placeholder:text-walnut/60 focus:border-bordeaux focus:ring-0">
+                            <input id="catalog-search-input" type="search" placeholder="Buscar vino, bodega, país, D.O. o nota..." class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm text-espresso placeholder:text-walnut/60 focus:border-bordeaux focus:ring-0">
                         </div>
                         <div class="md:col-span-2">
                             <label for="catalog-country-filter" class="sr-only">Filtrar por País</label>
@@ -742,28 +743,77 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                             </select>
                         </div>
                         <div class="md:col-span-3">
-                            <label for="catalog-sort-select" class="sr-only">Ordenar catálogo</label>
-                            <select id="catalog-sort-select" class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm font-sans text-espresso focus:border-bordeaux focus:ring-0">
-                                <option value="price-asc">Precio: menor a mayor</option>
-                                <option value="price-desc">Precio: mayor a menor</option>
-                                <option value="vintage-desc">Añada más reciente</option>
-                                <option value="name-asc">Nombre (A-Z)</option>
+                            <label for="catalog-price-filter" class="sr-only">Filtrar por rango de precio</label>
+                            <select id="catalog-price-filter" class="w-full bg-cream border border-espresso/20 rounded px-3 py-2 text-sm font-sans text-espresso focus:border-bordeaux focus:ring-0">
+                                <option value="">Todos los precios</option>
+                                <option value="0-20">Hasta 20 € · Diario</option>
+                                <option value="20-45">20 € - 45 € · Gastronómico</option>
+                                <option value="45-90">45 € - 90 € · Reserva</option>
+                                <option value="90+">Más de 90 € · Gran Cru</option>
                             </select>
                         </div>
                     </div>
 
-                    <div id="catalog-type-filter" class="flex flex-wrap gap-2 text-xs font-mono">
-                        <button type="button" data-type="" class="catalog-type-pill is-active px-3 py-1 rounded border border-espresso/15 cursor-pointer">Todos</button>
-                        <button type="button" data-type="Red" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Tinto</button>
-                        <button type="button" data-type="White" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Blanco</button>
-                        <button type="button" data-type="Sparkling" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Espumoso</button>
-                        <button type="button" data-type="Rose" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Rosado</button>
-                        <button type="button" data-type="Fortified" class="catalog-type-pill px-3 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Generoso</button>
+                    <!-- Row 2: Type Facet Pills + Sort, Grouping, View Mode, Page Size -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-espresso/10">
+                        <div id="catalog-type-filter" class="flex flex-wrap gap-1.5 text-xs font-mono">
+                            <button type="button" data-type="" class="catalog-type-pill is-active px-2.5 py-1 rounded border border-espresso/15 cursor-pointer">Todos</button>
+                            <button type="button" data-type="Red" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Tinto</button>
+                            <button type="button" data-type="White" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Blanco</button>
+                            <button type="button" data-type="Sparkling" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Espumoso</button>
+                            <button type="button" data-type="Rose" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Rosado</button>
+                            <button type="button" data-type="Fortified" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Generoso</button>
+                        </div>
+
+                        <div id="catalog-view-controls" class="flex flex-wrap items-center gap-2 text-xs font-mono">
+                            <label for="catalog-sort-select" class="sr-only">Ordenar catálogo</label>
+                            <select id="catalog-sort-select" class="bg-cream border border-espresso/20 rounded px-2.5 py-1 text-xs font-sans text-espresso focus:border-bordeaux focus:ring-0">
+                                <option value="price-asc">Precio: menor a mayor</option>
+                                <option value="price-desc">Precio: mayor a menor</option>
+                                <option value="vintage-desc">Añada más reciente</option>
+                                <option value="name-asc">Nombre (A-Z)</option>
+                                <option value="country-do">País y D.O.</option>
+                            </select>
+
+                            <label for="catalog-group-select" class="sr-only">Agrupar catálogo</label>
+                            <select id="catalog-group-select" class="bg-cream border border-espresso/20 rounded px-2.5 py-1 text-xs font-sans text-espresso focus:border-bordeaux focus:ring-0">
+                                <option value="none">Vista Paginada</option>
+                                <option value="country">Agrupar por País</option>
+                                <option value="appellation">Agrupar por D.O.</option>
+                            </select>
+
+                            <label for="catalog-page-size" class="sr-only">Referencias por página</label>
+                            <select id="catalog-page-size" class="bg-cream border border-espresso/20 rounded px-2 py-1 text-xs font-mono text-espresso focus:border-bordeaux focus:ring-0">
+                                <option value="12">12 / pág</option>
+                                <option value="24">24 / pág</option>
+                                <option value="48">48 / pág</option>
+                            </select>
+
+                            <div role="group" aria-label="Modo de visualización del catálogo" class="inline-flex rounded border border-espresso/15 bg-cream p-0.5 text-[11px]">
+                                <button type="button" data-view="cards" class="catalog-view-btn is-active px-2 py-0.5 rounded-xs cursor-pointer">Tarjetas</button>
+                                <button type="button" data-view="compact" class="catalog-view-btn px-2 py-0.5 rounded-xs text-walnut hover:text-espresso cursor-pointer">Lista</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Filter Chips Strip -->
+                    <div id="catalog-active-chips" class="hidden flex-wrap items-center gap-2 pt-1 border-t border-espresso/10 text-[11px] font-mono"></div>
+                </div>
+
+                <!-- Group Bulk Expand/Collapse Controls (visible in grouped mode) -->
+                <div id="catalog-group-toolbar" class="hidden flex-wrap items-center justify-between gap-2 text-xs font-mono text-walnut px-1">
+                    <span id="catalog-group-summary" class="tabular-nums"></span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="btn-catalog-expand-all" class="px-2.5 py-1 rounded border border-espresso/15 bg-butter/60 hover:bg-butter text-espresso cursor-pointer">Expandir todo</button>
+                        <button type="button" id="btn-catalog-collapse-all" class="px-2.5 py-1 rounded border border-espresso/15 bg-butter/60 hover:bg-butter text-espresso cursor-pointer">Colapsar todo</button>
                     </div>
                 </div>
 
-                <!-- Tasting Cards Grid -->
+                <!-- Tasting Cards / Compact List / Grouped Container -->
                 <div id="catalog-wines-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+                <!-- Scalable Pagination Bar -->
+                <nav id="catalog-pagination" aria-label="Paginación del catálogo" class="hidden flex-wrap items-center justify-between gap-3 pt-3 border-t border-espresso/12 text-xs font-mono text-walnut"></nav>
             </section>
         </section>
 
@@ -1136,7 +1186,13 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
         let catalogCountryFilter = "";
         let catalogDoFilter = "";
         let catalogTypeFilter = "";
+        let catalogPriceFilter = "";
         let catalogSortOrder = "price-asc";
+        let catalogGroupMode = "none";
+        let catalogViewMode = "cards";
+        let catalogPageSize = 12;
+        let catalogCurrentPage = 1;
+        let catalogExpandedGroups = new Set();
         let highlightedCatalogWineId = "";
         let cellarSearchQuery = "";
         let cellarWindowFilter = "all";
@@ -1327,7 +1383,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             try {
                 const [resDishes, resWines, resRegions] = await Promise.all([
                     fetch("/api/v1/dishes"),
-                    fetch("/api/v1/wines?limit=250"),
+                    fetch("/api/v1/wines?limit=500"),
                     fetch("/api/v1/regions")
                 ]);
                 allDishes = await resDishes.json();
@@ -1577,36 +1633,67 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 });
             });
 
-            // Wine Catalog Search & Filters
+            // Wine Catalog Search, Multi-Facet Filters, Grouping & Pagination
             document.getElementById("catalog-search-input")?.addEventListener("input", (e) => {
                 catalogSearchQuery = e.target.value.trim();
+                catalogCurrentPage = 1;
                 renderWineCatalog();
             });
             document.getElementById("catalog-country-filter")?.addEventListener("change", (e) => {
                 catalogCountryFilter = e.target.value;
                 catalogDoFilter = "";
+                catalogCurrentPage = 1;
                 populateCatalogFilters();
                 renderWineCatalog();
             });
             document.getElementById("catalog-do-filter")?.addEventListener("change", (e) => {
                 catalogDoFilter = e.target.value;
+                catalogCurrentPage = 1;
+                renderWineCatalog();
+            });
+            document.getElementById("catalog-price-filter")?.addEventListener("change", (e) => {
+                catalogPriceFilter = e.target.value;
+                catalogCurrentPage = 1;
                 renderWineCatalog();
             });
             document.getElementById("catalog-sort-select")?.addEventListener("change", (e) => {
                 catalogSortOrder = e.target.value;
+                catalogCurrentPage = 1;
                 renderWineCatalog();
             });
-            document.querySelectorAll(".catalog-type-pill").forEach(btn => {
+            document.getElementById("catalog-group-select")?.addEventListener("change", (e) => {
+                catalogGroupMode = e.target.value;
+                catalogExpandedGroups.clear();
+                catalogCurrentPage = 1;
+                renderWineCatalog();
+            });
+            document.getElementById("catalog-page-size")?.addEventListener("change", (e) => {
+                catalogPageSize = parseInt(e.target.value, 10) || 12;
+                catalogCurrentPage = 1;
+                renderWineCatalog();
+            });
+            document.querySelectorAll(".catalog-view-btn").forEach(btn => {
                 btn.addEventListener("click", () => {
-                    catalogTypeFilter = btn.getAttribute("data-type") || "";
-                    document.querySelectorAll(".catalog-type-pill").forEach(b => {
+                    catalogViewMode = btn.getAttribute("data-view") || "cards";
+                    document.querySelectorAll(".catalog-view-btn").forEach(b => {
                         const isMatch = b === btn;
                         b.classList.toggle("is-active", isMatch);
-                        b.classList.toggle("bg-cream", !isMatch);
                         b.classList.toggle("text-walnut", !isMatch);
                     });
                     renderWineCatalog();
                 });
+            });
+            document.getElementById("btn-catalog-expand-all")?.addEventListener("click", () => {
+                document.querySelectorAll(".catalog-group-section").forEach(sec => {
+                    const key = sec.getAttribute("data-group-key");
+                    if (key) catalogExpandedGroups.add(key);
+                });
+                renderWineCatalog();
+            });
+            document.getElementById("btn-catalog-collapse-all")?.addEventListener("click", () => {
+                catalogExpandedGroups.clear();
+                catalogExpandedGroups.add("__NONE__");
+                renderWineCatalog();
             });
             document.getElementById("btn-catalog-reset")?.addEventListener("click", () => {
                 resetCatalogFilters();
@@ -1959,17 +2046,34 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             radarChartInstance = new Chart(ctx, buildRadarConfig(target, wineSensory, 'Vino Seleccionado', 'Demanda del Plato'));
         }
 
-        /* --- Full Searchable & Filterable Spanish D.O. Wine Catalog (Tab 2) --- */
+        /* --- Scalable Searchable, Filterable, Groupable & Paginated Wine Catalog (Tab 2) --- */
 
         function populateCatalogFilters() {
+            const countrySelect = document.getElementById("catalog-country-filter");
+            if (countrySelect && allWines.length > 0) {
+                const countryCounts = {};
+                allWines.forEach(w => {
+                    const c = w.country || "España";
+                    countryCounts[c] = (countryCounts[c] || 0) + 1;
+                });
+                const countries = Object.keys(countryCounts).sort();
+                countrySelect.innerHTML = `<option value="">Todos los países (${countries.length})</option>` +
+                    countries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)} (${countryCounts[c]})</option>`).join("");
+                countrySelect.value = catalogCountryFilter;
+            }
+
             const select = document.getElementById("catalog-do-filter");
             if (!select) return;
             const pool = catalogCountryFilter
                 ? allWines.filter(w => w.country === catalogCountryFilter)
                 : allWines;
-            const dos = [...new Set(pool.map(w => w.appellation))].sort();
+            const doCounts = {};
+            pool.forEach(w => {
+                doCounts[w.appellation] = (doCounts[w.appellation] || 0) + 1;
+            });
+            const dos = Object.keys(doCounts).sort();
             select.innerHTML = `<option value="">Todas las Denominaciones (${dos.length})</option>` +
-                dos.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+                dos.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)} (${doCounts[d]})</option>`).join("");
             select.value = catalogDoFilter;
         }
 
@@ -1978,66 +2082,352 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             catalogCountryFilter = "";
             catalogDoFilter = "";
             catalogTypeFilter = "";
+            catalogPriceFilter = "";
+            catalogCurrentPage = 1;
+            catalogExpandedGroups.clear();
             highlightedCatalogWineId = "";
             const searchEl = document.getElementById("catalog-search-input");
             const countryEl = document.getElementById("catalog-country-filter");
             const doEl = document.getElementById("catalog-do-filter");
+            const priceEl = document.getElementById("catalog-price-filter");
             if (searchEl) searchEl.value = "";
             if (countryEl) countryEl.value = "";
+            if (priceEl) priceEl.value = "";
             populateCatalogFilters();
             if (doEl) doEl.value = "";
-            document.querySelectorAll(".catalog-type-pill").forEach(b => {
-                const isAll = b.getAttribute("data-type") === "";
-                b.classList.toggle("is-active", isAll);
-                b.classList.toggle("bg-cream", !isAll);
-                b.classList.toggle("text-walnut", !isAll);
-            });
+            renderCatalogTypePills(allWines);
             renderWineCatalog();
         }
 
         function translateWineType(t) {
-            const map = { Red: "Tinto", White: "Blanco", Sparkling: "Espumoso", Fortified: "Generoso", Rose: "Rosado" };
+            const map = {
+                Red: "Tinto",
+                White: "Blanco",
+                Sparkling: "Espumoso",
+                Fortified: "Generoso",
+                Rose: "Rosado",
+                Vermouth: "Vermut"
+            };
             return map[t] || t;
         }
 
-        function renderWineCatalog() {
-            const grid = document.getElementById("catalog-wines-grid");
-            const countEl = document.getElementById("catalog-count-label");
-            const resetBtn = document.getElementById("btn-catalog-reset");
-            if (!grid) return;
+        function matchesCatalogPriceBand(price, band) {
+            if (!band) return true;
+            if (band === "0-20") return price <= 20;
+            if (band === "20-45") return price > 20 && price <= 45;
+            if (band === "45-90") return price > 45 && price <= 90;
+            if (band === "90+") return price > 90;
+            return true;
+        }
 
+        function filterWinesBase(ignoreType = false) {
             const q = catalogSearchQuery.toLowerCase();
-            let filtered = allWines.filter(w => {
+            return allWines.filter(w => {
                 if (catalogCountryFilter && w.country !== catalogCountryFilter) return false;
                 if (catalogDoFilter && w.appellation !== catalogDoFilter) return false;
-                if (catalogTypeFilter && w.wine_type !== catalogTypeFilter) return false;
+                if (!ignoreType && catalogTypeFilter && w.wine_type !== catalogTypeFilter) return false;
+                if (catalogPriceFilter && !matchesCatalogPriceBand(w.price_eur || 0, catalogPriceFilter)) return false;
                 if (q) {
                     const haystack = `${w.name} ${w.winery} ${w.appellation} ${w.country || ""} ${w.classification || ""} ${w.tagline || ""} ${w.tasting_notes || ""}`.toLowerCase();
                     if (!haystack.includes(q)) return false;
                 }
                 return true;
             });
+        }
 
-            filtered = [...filtered].sort((a, b) => {
+        function sortCatalogWines(list) {
+            return [...list].sort((a, b) => {
                 if (catalogSortOrder === "price-desc") return b.price_eur - a.price_eur;
                 if (catalogSortOrder === "vintage-desc") return b.vintage - a.vintage;
                 if (catalogSortOrder === "name-asc") return a.name.localeCompare(b.name);
+                if (catalogSortOrder === "country-do") {
+                    const cmpCountry = (a.country || "").localeCompare(b.country || "");
+                    if (cmpCountry !== 0) return cmpCountry;
+                    const cmpDo = (a.appellation || "").localeCompare(b.appellation || "");
+                    if (cmpDo !== 0) return cmpDo;
+                    return a.name.localeCompare(b.name);
+                }
                 return a.price_eur - b.price_eur;
             });
+        }
+
+        function renderCatalogTypePills(poolWithoutType) {
+            const container = document.getElementById("catalog-type-filter");
+            if (!container) return;
+            const counts = {};
+            poolWithoutType.forEach(w => {
+                counts[w.wine_type] = (counts[w.wine_type] || 0) + 1;
+            });
+            const baseTypes = ["Red", "White", "Sparkling", "Rose", "Fortified"];
+            const extraTypes = Object.keys(counts).filter(t => !baseTypes.includes(t));
+            const types = ["", ...baseTypes, ...extraTypes];
+
+            container.innerHTML = types.map(t => {
+                const label = t === "" ? "Todos" : translateWineType(t);
+                const count = t === "" ? poolWithoutType.length : (counts[t] || 0);
+                const isActive = catalogTypeFilter === t;
+                const activeCls = isActive ? "is-active" : "bg-cream text-walnut hover:text-espresso";
+                return `<button type="button" data-type="${escapeHtml(t)}" class="catalog-type-pill ${activeCls} px-2.5 py-1 rounded border border-espresso/15 cursor-pointer tabular-nums">${escapeHtml(label)} <span class="opacity-75">(${count})</span></button>`;
+            }).join("");
+
+            container.querySelectorAll(".catalog-type-pill").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    catalogTypeFilter = btn.getAttribute("data-type") || "";
+                    catalogCurrentPage = 1;
+                    renderWineCatalog();
+                });
+            });
+        }
+
+        function renderCatalogActiveChips() {
+            const chipsEl = document.getElementById("catalog-active-chips");
+            if (!chipsEl) return;
+            const priceLabels = {
+                "0-20": "Hasta 20 €",
+                "20-45": "20 € - 45 €",
+                "45-90": "45 € - 90 €",
+                "90+": "Más de 90 €"
+            };
+            const chips = [];
+            if (catalogSearchQuery) chips.push({ key: "search", label: `Búsqueda: «${catalogSearchQuery}»` });
+            if (catalogCountryFilter) chips.push({ key: "country", label: `País: ${catalogCountryFilter}` });
+            if (catalogDoFilter) chips.push({ key: "do", label: `D.O.: ${catalogDoFilter}` });
+            if (catalogTypeFilter) chips.push({ key: "type", label: `Estilo: ${translateWineType(catalogTypeFilter)}` });
+            if (catalogPriceFilter) chips.push({ key: "price", label: `Precio: ${priceLabels[catalogPriceFilter] || catalogPriceFilter}` });
+
+            if (chips.length === 0) {
+                chipsEl.classList.add("hidden");
+                chipsEl.classList.remove("flex");
+                chipsEl.innerHTML = "";
+                return;
+            }
+
+            chipsEl.classList.remove("hidden");
+            chipsEl.classList.add("flex");
+            chipsEl.innerHTML = `<span class="text-walnut">Filtros activos:</span>` +
+                chips.map(ch => `
+                    <button type="button" data-clear-chip="${escapeHtml(ch.key)}" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-cream border border-bordeaux/25 text-bordeaux hover:bg-bordeaux hover:text-cream transition cursor-pointer">
+                        <span>${escapeHtml(ch.label)}</span>
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                `).join("");
+
+            chipsEl.querySelectorAll("[data-clear-chip]").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const key = btn.getAttribute("data-clear-chip");
+                    if (key === "search") {
+                        catalogSearchQuery = "";
+                        const el = document.getElementById("catalog-search-input");
+                        if (el) el.value = "";
+                    } else if (key === "country") {
+                        catalogCountryFilter = "";
+                        catalogDoFilter = "";
+                        populateCatalogFilters();
+                    } else if (key === "do") {
+                        catalogDoFilter = "";
+                        const el = document.getElementById("catalog-do-filter");
+                        if (el) el.value = "";
+                    } else if (key === "type") {
+                        catalogTypeFilter = "";
+                    } else if (key === "price") {
+                        catalogPriceFilter = "";
+                        const el = document.getElementById("catalog-price-filter");
+                        if (el) el.value = "";
+                    }
+                    catalogCurrentPage = 1;
+                    renderWineCatalog();
+                });
+            });
+        }
+
+        function buildWineCardHtml(w) {
+            const isHighlighted = highlightedCatalogWineId && w.id === highlightedCatalogWineId;
+            const s = w.sensory || { body: 5, acidity: 5, tannins: 5 };
+            return `
+                <article data-catalog-wine-id="${escapeHtml(w.id)}" class="bg-cream border ${isHighlighted ? 'border-2 border-bordeaux ring-2 ring-bordeaux/20' : 'border-espresso/15'} rounded p-5 flex flex-col justify-between gap-4 shadow-2xs hover:border-bordeaux/45 transition">
+                    <div class="space-y-2.5">
+                        <div class="flex items-center justify-between gap-2 text-[10px] font-mono">
+                            <span class="text-bordeaux uppercase tracking-wider font-semibold truncate">${escapeHtml(w.country || "España")} · ${escapeHtml(w.appellation)}</span>
+                            <span class="px-2 py-0.5 rounded bg-butter border border-espresso/10 text-walnut shrink-0">${escapeHtml(translateWineType(w.wine_type))} · ${escapeHtml(w.vintage)}</span>
+                        </div>
+                        <div class="flex justify-between items-baseline gap-2">
+                            <h3 class="font-serif text-xl text-espresso leading-snug">${escapeHtml(w.name)}</h3>
+                            <span class="font-mono text-sm font-semibold text-espresso tabular-nums shrink-0">${w.price_eur.toFixed(2)} €</span>
+                        </div>
+                        <p class="text-xs font-mono text-walnut">${escapeHtml(w.winery)}</p>
+                        <p class="font-serif italic text-sm text-bordeaux/90 leading-snug">«${escapeHtml(w.tagline || w.tasting_notes)}»</p>
+                        <p class="text-xs text-walnut line-clamp-2">${escapeHtml(w.tasting_notes)}</p>
+                    </div>
+
+                    <div class="space-y-3 pt-3 border-t border-espresso/10">
+                        <div class="flex items-center justify-between text-[10px] font-mono text-walnut tabular-nums">
+                            <span>Cuerpo ${s.body.toFixed(1)} · Acidez ${s.acidity.toFixed(1)} · Taninos ${s.tannins.toFixed(1)}</span>
+                            <span>${w.serving_temp_c.toFixed(0)} °C</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" data-action="add-cellar" data-wine-id="${escapeHtml(w.id)}" class="flex-1 py-1.5 px-3 bg-bordeaux text-cream text-[11px] font-mono rounded hover:bg-bordeaux/90 transition cursor-pointer">
+                                + Añadir a Bodega
+                            </button>
+                            <button type="button" data-action="view-atlas" data-wine-id="${escapeHtml(w.id)}" class="py-1.5 px-2.5 bg-butter hover:bg-butter/80 text-espresso border border-espresso/15 text-[11px] font-mono rounded transition cursor-pointer">
+                                Ver en Atlas →
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function buildWineCompactRowHtml(w) {
+            const isHighlighted = highlightedCatalogWineId && w.id === highlightedCatalogWineId;
+            const s = w.sensory || { body: 5, acidity: 5, tannins: 5 };
+            return `
+                <article data-catalog-wine-id="${escapeHtml(w.id)}" class="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${isHighlighted ? 'bg-butter/90 ring-2 ring-inset ring-bordeaux/40' : 'hover:bg-butter/40'}">
+                    <div class="min-w-0 flex-1 space-y-0.5">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h3 class="font-serif text-lg text-espresso leading-tight">${escapeHtml(w.name)}</h3>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-butter border border-espresso/10 text-walnut">${escapeHtml(translateWineType(w.wine_type))} · ${escapeHtml(w.vintage)}</span>
+                            <span class="text-[10px] font-mono text-bordeaux uppercase tracking-wide">${escapeHtml(w.country || "España")} · ${escapeHtml(w.appellation)}</span>
+                        </div>
+                        <p class="text-xs text-walnut truncate">
+                            <span class="font-mono">${escapeHtml(w.winery)}</span>
+                            <span class="mx-1.5 opacity-40">·</span>
+                            <span class="italic">«${escapeHtml(w.tagline || w.tasting_notes)}»</span>
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 shrink-0">
+                        <span class="hidden lg:inline text-[10px] font-mono text-walnut tabular-nums">C ${s.body.toFixed(1)} · A ${s.acidity.toFixed(1)} · T ${s.tannins.toFixed(1)}</span>
+                        <span class="font-mono text-sm font-semibold text-espresso tabular-nums w-16 text-right">${w.price_eur.toFixed(2)} €</span>
+                        <button type="button" data-action="add-cellar" data-wine-id="${escapeHtml(w.id)}" class="py-1 px-2.5 bg-bordeaux text-cream text-[11px] font-mono rounded hover:bg-bordeaux/90 transition cursor-pointer">
+                            + Bodega
+                        </button>
+                        <button type="button" data-action="view-atlas" data-wine-id="${escapeHtml(w.id)}" class="py-1 px-2 bg-butter hover:bg-butter/80 text-espresso border border-espresso/15 text-[11px] font-mono rounded transition cursor-pointer">
+                            Atlas →
+                        </button>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderCatalogItemsCollection(items) {
+            if (catalogViewMode === "compact") {
+                return `<div class="bg-cream border border-espresso/15 rounded divide-y divide-espresso/10 overflow-hidden">${items.map(buildWineCompactRowHtml).join("")}</div>`;
+            }
+            return `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">${items.map(buildWineCardHtml).join("")}</div>`;
+        }
+
+        function buildPaginationModel(currentPage, totalPages) {
+            if (totalPages <= 7) {
+                return Array.from({ length: totalPages }, (_, i) => i + 1);
+            }
+            const pages = [1];
+            if (currentPage > 3) pages.push("…");
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            for (let p = start; p <= end; p++) pages.push(p);
+            if (currentPage < totalPages - 2) pages.push("…");
+            pages.push(totalPages);
+            return pages;
+        }
+
+        function renderCatalogPaginationBar(totalFiltered, totalPages, startIdx, endIdx) {
+            const nav = document.getElementById("catalog-pagination");
+            if (!nav) return;
+            if (catalogGroupMode !== "none" || totalFiltered === 0) {
+                nav.classList.add("hidden");
+                nav.classList.remove("flex");
+                nav.innerHTML = "";
+                return;
+            }
+            nav.classList.remove("hidden");
+            nav.classList.add("flex");
+
+            const pageTokens = buildPaginationModel(catalogCurrentPage, totalPages);
+            const pageButtons = pageTokens.map(token => {
+                if (token === "…") {
+                    return `<span class="px-1.5 text-walnut/70">…</span>`;
+                }
+                const isCur = token === catalogCurrentPage;
+                return `<button type="button" data-page="${token}" class="catalog-page-btn ${isCur ? 'is-active' : 'bg-cream text-espresso hover:bg-butter'} min-w-[30px] h-7 px-2 rounded border border-espresso/15 cursor-pointer tabular-nums">${token}</button>`;
+            }).join("");
+
+            nav.innerHTML = `
+                <div class="tabular-nums">
+                    Mostrando <strong>${startIdx + 1}-${endIdx}</strong> de <strong>${totalFiltered}</strong> referencias · Página ${catalogCurrentPage} de ${totalPages}
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" data-page="${catalogCurrentPage - 1}" ${catalogCurrentPage <= 1 ? 'disabled' : ''} class="px-2.5 h-7 rounded border border-espresso/15 bg-cream text-espresso hover:bg-butter disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        ← Anterior
+                    </button>
+                    ${pageButtons}
+                    <button type="button" data-page="${catalogCurrentPage + 1}" ${catalogCurrentPage >= totalPages ? 'disabled' : ''} class="px-2.5 h-7 rounded border border-espresso/15 bg-cream text-espresso hover:bg-butter disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        Siguiente →
+                    </button>
+                </div>
+            `;
+
+            nav.querySelectorAll("[data-page]").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const targetPage = parseInt(btn.getAttribute("data-page") || "1", 10);
+                    if (targetPage >= 1 && targetPage <= totalPages && targetPage !== catalogCurrentPage) {
+                        catalogCurrentPage = targetPage;
+                        renderWineCatalog();
+                        document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                });
+            });
+        }
+
+        function bindCatalogCardActions(container) {
+            container.querySelectorAll('button[data-action="add-cellar"]').forEach(btn => {
+                btn.addEventListener("click", () => {
+                    quickAddWineToCellar(btn.getAttribute("data-wine-id"), "Catálogo");
+                });
+            });
+            container.querySelectorAll('button[data-action="view-atlas"]').forEach(btn => {
+                btn.addEventListener("click", () => {
+                    bridgeWineToAtlas(btn.getAttribute("data-wine-id"));
+                });
+            });
+        }
+
+        function renderWineCatalog() {
+            const grid = document.getElementById("catalog-wines-grid");
+            const countEl = document.getElementById("catalog-count-label");
+            const resetBtn = document.getElementById("btn-catalog-reset");
+            const groupToolbar = document.getElementById("catalog-group-toolbar");
+            const groupSummary = document.getElementById("catalog-group-summary");
+            const pageSizeSel = document.getElementById("catalog-page-size");
+            if (!grid) return;
+
+            const poolWithoutType = filterWinesBase(true);
+            renderCatalogTypePills(poolWithoutType);
+            renderCatalogActiveChips();
+
+            const filtered = sortCatalogWines(filterWinesBase(false));
 
             if (countEl) {
                 countEl.textContent = `Mostrando ${filtered.length} de ${allWines.length} vinos`;
             }
             if (resetBtn) {
-                const hasFilter = Boolean(catalogSearchQuery || catalogCountryFilter || catalogDoFilter || catalogTypeFilter || highlightedCatalogWineId);
+                const hasFilter = Boolean(catalogSearchQuery || catalogCountryFilter || catalogDoFilter || catalogTypeFilter || catalogPriceFilter || highlightedCatalogWineId);
                 resetBtn.classList.toggle("hidden", !hasFilter);
+            }
+            if (pageSizeSel) {
+                pageSizeSel.disabled = catalogGroupMode !== "none";
+                pageSizeSel.classList.toggle("opacity-50", catalogGroupMode !== "none");
             }
 
             if (filtered.length === 0) {
+                grid.className = "block";
+                if (groupToolbar) {
+                    groupToolbar.classList.add("hidden");
+                    groupToolbar.classList.remove("flex");
+                }
+                renderCatalogPaginationBar(0, 1, 0, 0);
                 grid.innerHTML = `
-                    <div class="col-span-full bg-butter/50 border border-espresso/15 rounded p-8 text-center space-y-3">
+                    <div class="bg-butter/50 border border-espresso/15 rounded p-8 text-center space-y-3">
                         <p class="font-serif text-xl text-espresso">No encontramos etiquetas con estos filtros</p>
-                        <p class="text-xs text-walnut">Prueba limpiando la búsqueda o seleccionando otra Denominación de Origen.</p>
+                        <p class="text-xs text-walnut">Prueba limpiando la búsqueda o combinando otros criterios de país, tipo o precio.</p>
                         <button type="button" onclick="resetCatalogFilters()" class="px-4 py-2 bg-bordeaux text-cream text-xs font-mono rounded cursor-pointer">
                             Restablecer Catálogo
                         </button>
@@ -2046,53 +2436,97 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 return;
             }
 
-            grid.innerHTML = filtered.map(w => {
-                const isHighlighted = highlightedCatalogWineId && w.id === highlightedCatalogWineId;
-                const s = w.sensory || { body: 5, acidity: 5, tannins: 5 };
-                return `
-                    <article data-catalog-wine-id="${escapeHtml(w.id)}" class="bg-cream border ${isHighlighted ? 'border-2 border-bordeaux ring-2 ring-bordeaux/20' : 'border-espresso/15'} rounded p-5 flex flex-col justify-between gap-4 shadow-2xs hover:border-bordeaux/45 transition">
-                        <div class="space-y-2.5">
-                            <div class="flex items-center justify-between gap-2 text-[10px] font-mono">
-                                <span class="text-bordeaux uppercase tracking-wider font-semibold truncate">${escapeHtml(w.appellation)}</span>
-                                <span class="px-2 py-0.5 rounded bg-butter border border-espresso/10 text-walnut shrink-0">${escapeHtml(translateWineType(w.wine_type))} · ${escapeHtml(w.vintage)}</span>
-                            </div>
-                            <div class="flex justify-between items-baseline gap-2">
-                                <h3 class="font-serif text-xl text-espresso leading-snug">${escapeHtml(w.name)}</h3>
-                                <span class="font-mono text-sm font-semibold text-espresso tabular-nums shrink-0">${w.price_eur.toFixed(2)} €</span>
-                            </div>
-                            <p class="text-xs font-mono text-walnut">${escapeHtml(w.winery)}</p>
-                            <p class="font-serif italic text-sm text-bordeaux/90 leading-snug">«${escapeHtml(w.tagline || w.tasting_notes)}»</p>
-                            <p class="text-xs text-walnut line-clamp-2">${escapeHtml(w.tasting_notes)}</p>
-                        </div>
-
-                        <div class="space-y-3 pt-3 border-t border-espresso/10">
-                            <div class="flex items-center justify-between text-[10px] font-mono text-walnut tabular-nums">
-                                <span>Cuerpo ${s.body.toFixed(1)} · Acidez ${s.acidity.toFixed(1)} · Taninos ${s.tannins.toFixed(1)}</span>
-                                <span>${w.serving_temp_c.toFixed(0)} °C</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button type="button" data-action="add-cellar" data-wine-id="${escapeHtml(w.id)}" class="flex-1 py-1.5 px-3 bg-bordeaux text-cream text-[11px] font-mono rounded hover:bg-bordeaux/90 transition cursor-pointer">
-                                    + Añadir a Bodega
-                                </button>
-                                <button type="button" data-action="view-atlas" data-wine-id="${escapeHtml(w.id)}" class="py-1.5 px-2.5 bg-butter hover:bg-butter/80 text-espresso border border-espresso/15 text-[11px] font-mono rounded transition cursor-pointer">
-                                    Ver en Atlas →
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                `;
-            }).join("");
-
-            grid.querySelectorAll('button[data-action="add-cellar"]').forEach(btn => {
-                btn.addEventListener("click", () => {
-                    quickAddWineToCellar(btn.getAttribute("data-wine-id"), "Catálogo");
+            if (catalogGroupMode !== "none") {
+                const groupsMap = new Map();
+                filtered.forEach(w => {
+                    const key = catalogGroupMode === "country" ? (w.country || "España") : (w.appellation || "Sin D.O.");
+                    if (!groupsMap.has(key)) groupsMap.set(key, []);
+                    groupsMap.get(key).push(w);
                 });
-            });
-            grid.querySelectorAll('button[data-action="view-atlas"]').forEach(btn => {
-                btn.addEventListener("click", () => {
-                    bridgeWineToAtlas(btn.getAttribute("data-wine-id"));
+                const groupKeys = Array.from(groupsMap.keys()).sort((a, b) => a.localeCompare(b));
+
+                if (highlightedCatalogWineId) {
+                    const hw = filtered.find(w => w.id === highlightedCatalogWineId);
+                    if (hw) {
+                        const hKey = catalogGroupMode === "country" ? (hw.country || "España") : (hw.appellation || "Sin D.O.");
+                        catalogExpandedGroups.add(hKey);
+                    }
+                } else if (catalogExpandedGroups.size === 0 && groupKeys.length > 0) {
+                    catalogExpandedGroups.add(groupKeys[0]);
+                }
+
+                if (groupToolbar) {
+                    groupToolbar.classList.remove("hidden");
+                    groupToolbar.classList.add("flex");
+                }
+                if (groupSummary) {
+                    const labelKind = catalogGroupMode === "country" ? "países" : "denominaciones";
+                    groupSummary.textContent = `${groupKeys.length} ${labelKind} · ${filtered.length} referencias`;
+                }
+
+                grid.className = "space-y-3";
+                grid.innerHTML = groupKeys.map(key => {
+                    const items = groupsMap.get(key) || [];
+                    const isOpen = catalogExpandedGroups.has(key);
+                    const prices = items.map(x => x.price_eur || 0);
+                    const minP = Math.min(...prices).toFixed(0);
+                    const maxP = Math.max(...prices).toFixed(0);
+                    const bodyHtml = isOpen ? `<div class="p-4 border-t border-espresso/12 bg-butter/20">${renderCatalogItemsCollection(items)}</div>` : "";
+                    return `
+                        <section data-group-key="${escapeHtml(key)}" class="catalog-group-section bg-cream border border-espresso/15 rounded overflow-hidden">
+                            <button type="button" data-toggle-group="${escapeHtml(key)}" class="w-full px-4 py-3 bg-butter/55 hover:bg-butter/85 flex flex-wrap items-center justify-between gap-3 text-left transition cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="font-serif text-xl text-espresso">${escapeHtml(key)}</span>
+                                    <span class="px-2 py-0.5 text-[10px] font-mono rounded bg-cream border border-espresso/12 text-bordeaux font-medium tabular-nums">${items.length} vinos</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs font-mono text-walnut tabular-nums">
+                                    <span>${minP} € - ${maxP} €</span>
+                                    <span class="text-bordeaux transform transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}">▾</span>
+                                </div>
+                            </button>
+                            ${bodyHtml}
+                        </section>
+                    `;
+                }).join("");
+
+                grid.querySelectorAll("[data-toggle-group]").forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        const key = btn.getAttribute("data-toggle-group");
+                        if (!key) return;
+                        catalogExpandedGroups.delete("__NONE__");
+                        if (catalogExpandedGroups.has(key)) catalogExpandedGroups.delete(key);
+                        else catalogExpandedGroups.add(key);
+                        renderWineCatalog();
+                    });
                 });
-            });
+                bindCatalogCardActions(grid);
+                renderCatalogPaginationBar(0, 1, 0, 0);
+                return;
+            }
+
+            if (groupToolbar) {
+                groupToolbar.classList.add("hidden");
+                groupToolbar.classList.remove("flex");
+            }
+
+            const totalPages = Math.max(1, Math.ceil(filtered.length / catalogPageSize));
+            if (highlightedCatalogWineId) {
+                const hiIdx = filtered.findIndex(w => w.id === highlightedCatalogWineId);
+                if (hiIdx >= 0) {
+                    catalogCurrentPage = Math.floor(hiIdx / catalogPageSize) + 1;
+                }
+            }
+            if (catalogCurrentPage > totalPages) catalogCurrentPage = totalPages;
+            if (catalogCurrentPage < 1) catalogCurrentPage = 1;
+
+            const startIdx = (catalogCurrentPage - 1) * catalogPageSize;
+            const endIdx = Math.min(filtered.length, startIdx + catalogPageSize);
+            const pageItems = filtered.slice(startIdx, endIdx);
+
+            grid.className = "block";
+            grid.innerHTML = renderCatalogItemsCollection(pageItems);
+            bindCatalogCardActions(grid);
+            renderCatalogPaginationBar(filtered.length, totalPages, startIdx, endIdx);
         }
 
         /* --- Atlas Cartográfico de Terroirs & Bodegas D.O. (Tab 1) --- */
@@ -2702,21 +3136,23 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
 
         function bridgeAtlasToCarte(feature) {
             const p = feature.properties;
+            catalogCountryFilter = "";
             catalogDoFilter = p.appellation || "";
             catalogSearchQuery = "";
             catalogTypeFilter = "";
+            catalogPriceFilter = "";
+            catalogCurrentPage = 1;
             highlightedCatalogWineId = p.feature_type === "winery" ? p.id : "";
 
+            const countrySelect = document.getElementById("catalog-country-filter");
             const doSelect = document.getElementById("catalog-do-filter");
             const searchInput = document.getElementById("catalog-search-input");
+            const priceSelect = document.getElementById("catalog-price-filter");
+            if (countrySelect) countrySelect.value = "";
+            populateCatalogFilters();
             if (doSelect) doSelect.value = catalogDoFilter;
             if (searchInput) searchInput.value = "";
-            document.querySelectorAll(".catalog-type-pill").forEach(b => {
-                const isAll = b.getAttribute("data-type") === "";
-                b.classList.toggle("is-active", isAll);
-                b.classList.toggle("bg-cream", !isAll);
-                b.classList.toggle("text-walnut", !isAll);
-            });
+            if (priceSelect) priceSelect.value = "";
 
             renderWineCatalog();
             switchTab("carte", true);
@@ -3258,9 +3694,21 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 btn.addEventListener("click", () => {
                     const app = btn.getAttribute("data-bridge-carte") || "";
                     const wid = btn.getAttribute("data-wine-id") || "";
+                    catalogSearchQuery = "";
+                    catalogCountryFilter = "";
+                    catalogTypeFilter = "";
+                    catalogPriceFilter = "";
                     catalogDoFilter = app;
+                    catalogCurrentPage = 1;
                     highlightedCatalogWineId = wid;
+                    const searchEl = document.getElementById("catalog-search-input");
+                    const countryEl = document.getElementById("catalog-country-filter");
+                    const priceEl = document.getElementById("catalog-price-filter");
                     const doEl = document.getElementById("catalog-do-filter");
+                    if (searchEl) searchEl.value = "";
+                    if (countryEl) countryEl.value = "";
+                    if (priceEl) priceEl.value = "";
+                    populateCatalogFilters();
                     if (doEl) doEl.value = app;
                     renderWineCatalog();
                     switchTab("carte", true);

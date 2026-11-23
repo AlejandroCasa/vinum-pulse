@@ -441,10 +441,22 @@ def test_dashboard_ui_contextual_bridges_and_cellar_workspace() -> None:
     assert 'id="btn-pairing-view-atlas"' in html
     assert 'id="btn-add-trio-cellar"' in html
 
-    # Searchable catalog, progression curve, cellar analytics/CRUD & toast container
+    # Searchable, paginated & groupable catalog, progression curve, cellar UI & toast
     assert 'id="catalog-search-input"' in html
     assert 'id="catalog-do-filter"' in html
+    assert 'id="catalog-price-filter"' in html
+    assert 'id="catalog-group-select"' in html
+    assert 'id="catalog-page-size"' in html
+    assert 'id="catalog-view-controls"' in html
+    assert 'id="catalog-active-chips"' in html
+    assert 'id="catalog-group-toolbar"' in html
+    assert 'id="catalog-pagination"' in html
     assert 'id="catalog-wines-grid"' in html
+    assert "Carta Europea de Referencia" in html
+    assert "matchesCatalogPriceBand" in html
+    assert "buildPaginationModel" in html
+    assert "renderCatalogPaginationBar" in html
+    assert 'fetch("/api/v1/wines?limit=500")' in html
     assert 'id="progressionChart"' in html
     assert 'id="cellar-analytics-grid"' in html
     assert 'id="cellar-add-form"' in html
