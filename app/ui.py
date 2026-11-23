@@ -324,7 +324,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     <div class="space-y-1">
                         <div class="text-xs font-mono text-bordeaux uppercase tracking-wider flex items-center gap-2">
                             <span class="inline-block w-2 h-2 rounded-full bg-bordeaux"></span>
-                            Geografía &amp; Terroir Peninsular
+                            Geografía &amp; Terroir Europeo
                         </div>
                         <h2 class="font-serif text-3xl sm:text-4xl text-espresso tracking-tight">
                             Atlas Cartográfico de Terroirs &amp; Bodegas D.O.
@@ -380,24 +380,23 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                         <div class="relative w-full h-[460px] rounded border border-espresso/15 overflow-hidden bg-[#FAF6EE] shadow-xs">
                             <div id="atlas-map" class="w-full h-full z-10"></div>
                             <!-- Deterministic SVG Fallback -->
-                            <div id="atlas-svg-fallback" class="hidden absolute inset-0 w-full h-full bg-[#FAF6EE] p-4 flex flex-col justify-between z-20 overflow-hidden">
-                                <div class="flex justify-between items-center text-xs font-mono text-walnut border-b border-espresso/10 pb-2">
+                            <div id="atlas-svg-fallback" class="hidden absolute inset-0 w-full h-full bg-[#FAF6EE] p-4 flex-col justify-between gap-2 z-20 overflow-hidden">
+                                <div class="flex justify-between items-center text-xs font-mono text-walnut border-b border-espresso/10 pb-2 shrink-0">
                                     <span class="flex items-center gap-1.5">
                                         <span class="w-2 h-2 rounded-full bg-sage"></span>
-                                        Atlas Cartográfico Vectorial (Modo Determinista)
+                                        Atlas Vectorial Europeo (SVG Offline)
                                     </span>
-                                    <span id="svg-fallback-counter" class="text-bordeaux font-medium">__KPI_REGIONS_COUNT__ D.O. / __KPI_WINES_COUNT__ Bodegas</span>
+                                    <span id="svg-fallback-counter" class="text-bordeaux font-medium tabular-nums">__KPI_REGIONS_COUNT__ Regiones · __KPI_WINES_COUNT__ Bodegas</span>
                                 </div>
-                                <div id="svg-map-canvas" class="w-full h-[380px] flex items-center justify-center"></div>
+                                <div id="svg-map-canvas" class="w-full flex-1 min-h-0 flex items-center justify-center"></div>
                             </div>
                         </div>
                         <div class="flex flex-wrap justify-between items-center text-[11px] font-mono text-walnut px-1 gap-2">
                             <div id="atlas-basemap-bar" role="group" aria-label="Proveedor cartográfico" class="inline-flex rounded border border-espresso/15 bg-butter/60 p-0.5 text-[10px] font-mono">
-                                <button type="button" data-basemap="osm-editorial" class="atlas-basemap-btn is-active px-2 py-0.5 rounded-xs cursor-pointer">OSM Editorial</button>
-                                <button type="button" data-basemap="ign-espana" class="atlas-basemap-btn px-2 py-0.5 rounded-xs text-walnut hover:text-espresso cursor-pointer">IGN España</button>
-                                <button type="button" data-basemap="svg-offline" class="atlas-basemap-btn px-2 py-0.5 rounded-xs text-walnut hover:text-espresso cursor-pointer">SVG Offline</button>
+                                <button type="button" data-basemap="osm-editorial" title="OpenStreetMap Editorial (Zero-Key Open Source)" aria-label="OpenStreetMap Editorial (Zero-Key Open Source)" class="atlas-basemap-btn is-active px-2 py-0.5 rounded-xs cursor-pointer">OSM Editorial</button>
+                                <button type="button" data-basemap="ign-espana" title="IGN España (CC-BY 4.0 Open Source)" aria-label="IGN España (CC-BY 4.0 Open Source)" class="atlas-basemap-btn px-2 py-0.5 rounded-xs text-walnut hover:text-espresso cursor-pointer">IGN España</button>
+                                <button type="button" data-basemap="svg-offline" title="Atlas Vectorial SVG Offline" aria-label="Atlas Vectorial SVG Offline" class="atlas-basemap-btn px-2 py-0.5 rounded-xs text-walnut hover:text-espresso cursor-pointer">SVG Offline</button>
                             </div>
-                            <span id="map-engine-label" class="text-sage">Cartografía: OpenStreetMap Editorial (Zero-Key Open Source)</span>
                         </div>
                         <p class="text-[11px] font-mono text-walnut/80 px-1">
                             Haz clic en un marcador para inspeccionar el terroir y actualizar el Radar Sensorial 5D.
@@ -1085,7 +1084,11 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
         let preferredType = null;
         let currentPairingRec = null;
 
-        const EUROPE_DEFAULT_VIEW = { center: [45.5, 2.5], zoom: 4.5 };
+        const EUROPE_DEFAULT_VIEW = {
+            center: [44.2, 4.5],
+            zoom: 4.25,
+            bounds: [[36.0, -9.5], [52.0, 18.5]]
+        };
         const COUNTRY_BOUNDS = {
             "": [[36.0, -9.5], [52.0, 18.5]],
             "España": [[36.0, -9.5], [43.5, 3.2]],
@@ -1115,7 +1118,6 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     className: "vinum-editorial-tiles",
                     attribution: "&copy; OpenStreetMap contributors"
                 },
-                label: "Cartografía: OpenStreetMap Editorial (Zero-Key Open Source)",
                 nextFallback: "ign-espana"
             },
             "ign-espana": {
@@ -1124,7 +1126,6 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     maxZoom: 18,
                     attribution: "&copy; Instituto Geográfico Nacional de España (CC-BY 4.0)"
                 },
-                label: "Cartografía: IGN España (CC-BY 4.0 Open Source)",
                 nextFallback: "svg-offline"
             }
         };
@@ -1215,7 +1216,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     if (atlasMap) {
                         atlasMap.invalidateSize();
                         if (atlasNeedsInitialCenter) {
-                            atlasMap.setView(EUROPE_DEFAULT_VIEW.center, EUROPE_DEFAULT_VIEW.zoom, { animate: false });
+                            fitAtlasToCurrentScope(false);
                             atlasNeedsInitialCenter = false;
                         }
                     }
@@ -1361,7 +1362,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             const badgeEl = document.getElementById("atlas-status-badge");
             if (winesEl) winesEl.textContent = `${allWines.length} Vinos`;
             if (regionsEl) regionsEl.textContent = `${allRegions.length} D.O.`;
-            if (badgeEl && !atlasCountryFilter) {
+            if (badgeEl && !selectedCountry) {
                 badgeEl.textContent = `${allRegions.length} Regiones · ${allWines.length} Bodegas`;
             }
         }
@@ -2104,6 +2105,18 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             ).join("");
         }
 
+        function fitAtlasToCurrentScope(animate = true) {
+            if (!leafletMap) return;
+            const targetBounds = (selectedCountry && COUNTRY_BOUNDS[selectedCountry])
+                ? COUNTRY_BOUNDS[selectedCountry]
+                : COUNTRY_BOUNDS[""];
+            if (animate) {
+                leafletMap.flyToBounds(targetBounds, { padding: [24, 24], duration: 0.75 });
+            } else {
+                leafletMap.fitBounds(targetBounds, { padding: [24, 24], animate: false });
+            }
+        }
+
         async function initAtlas() {
             await loadAtlasLayer(activeAtlasLayer);
         }
@@ -2116,18 +2129,12 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
 
             const labelEl = document.getElementById("atlas-selected-country-label");
             if (labelEl) {
-                labelEl.textContent = country ? `${country} · Atlas Regional` : "Europa (4 Países)";
+                const totalCountries = new Set(allRegions.map(r => r.country).filter(Boolean)).size || 4;
+                labelEl.textContent = country ? `${country} · Atlas Regional` : `Europa (${totalCountries} Países)`;
             }
 
             await loadAtlasLayer(activeAtlasLayer);
-
-            if (leafletMap) {
-                if (country && COUNTRY_BOUNDS[country]) {
-                    leafletMap.flyToBounds(COUNTRY_BOUNDS[country], { padding: [24, 24], duration: 0.75 });
-                } else {
-                    leafletMap.setView(EUROPE_DEFAULT_VIEW.center, EUROPE_DEFAULT_VIEW.zoom, { animate: true });
-                }
-            }
+            fitAtlasToCurrentScope(true);
         }
 
         async function loadAtlasLayer(layer) {
@@ -2205,10 +2212,8 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 if (doName && matching.length > 0) {
                     const first = matching[0];
                     leafletMap.setView([first.geometry.coordinates[1], first.geometry.coordinates[0]], 8, { animate: true });
-                } else if (selectedCountry && COUNTRY_BOUNDS[selectedCountry]) {
-                    leafletMap.flyToBounds(COUNTRY_BOUNDS[selectedCountry], { padding: [24, 24], duration: 0.75 });
                 } else {
-                    leafletMap.setView(EUROPE_DEFAULT_VIEW.center, EUROPE_DEFAULT_VIEW.zoom, { animate: true });
+                    fitAtlasToCurrentScope(true);
                 }
             }
 
@@ -2345,6 +2350,16 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             });
         }
 
+        function toggleAtlasSvgVisibility(showSvg) {
+            const mapDiv = document.getElementById("atlas-map");
+            const fallbackDiv = document.getElementById("atlas-svg-fallback");
+            if (mapDiv) mapDiv.classList.toggle("hidden", showSvg);
+            if (fallbackDiv) {
+                fallbackDiv.classList.toggle("hidden", !showSvg);
+                fallbackDiv.classList.toggle("flex", showSvg);
+            }
+        }
+
         function switchBasemapProvider(providerId) {
             if (providerId === "svg-offline") {
                 initSvgFallbackAtlas();
@@ -2358,7 +2373,10 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             activeBasemapId = BASEMAP_PROVIDERS[providerId] ? providerId : "osm-editorial";
             initLeafletAtlas();
             setTimeout(() => {
-                if (atlasMap) atlasMap.invalidateSize();
+                if (atlasMap) {
+                    atlasMap.invalidateSize();
+                    if (!selectedDo) fitAtlasToCurrentScope(false);
+                }
             }, 60);
         }
 
@@ -2368,11 +2386,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             const cfg = BASEMAP_PROVIDERS[resolvedId];
             activeBasemapId = resolvedId;
             syncBasemapButtons(resolvedId);
-
-            const mapDiv = document.getElementById("atlas-map");
-            const fallbackDiv = document.getElementById("atlas-svg-fallback");
-            if (mapDiv) mapDiv.classList.remove("hidden");
-            if (fallbackDiv) fallbackDiv.classList.add("hidden");
+            toggleAtlasSvgVisibility(false);
 
             if (activeTileLayer) {
                 leafletMap.removeLayer(activeTileLayer);
@@ -2401,8 +2415,6 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             });
 
             activeTileLayer = tileLayer.addTo(leafletMap);
-            const labelEl = document.getElementById("map-engine-label");
-            if (labelEl) labelEl.textContent = cfg.label;
         }
 
         function initLeafletAtlas() {
@@ -2412,15 +2424,15 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     return;
                 }
                 const mapEl = document.getElementById("atlas-map");
-                const fallbackDiv = document.getElementById("atlas-svg-fallback");
                 if (!mapEl) return;
-                mapEl.classList.remove("hidden");
-                if (fallbackDiv) fallbackDiv.classList.add("hidden");
+                toggleAtlasSvgVisibility(false);
 
                 if (!leafletMap) {
                     leafletMap = L.map("atlas-map", {
                         center: EUROPE_DEFAULT_VIEW.center,
                         zoom: EUROPE_DEFAULT_VIEW.zoom,
+                        zoomSnap: 0.25,
+                        zoomDelta: 0.5,
                         zoomControl: true,
                         attributionControl: true
                     });
@@ -2428,6 +2440,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                         leafletMap.attributionControl.setPrefix(false);
                     }
                     atlasMap = leafletMap;
+                    fitAtlasToCurrentScope(false);
                 }
 
                 applyLeafletBasemap(activeBasemapId);
@@ -2469,53 +2482,197 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             }
         }
 
+        const EUROPE_SVG_POLYGONS = [
+            { country: "Inglaterra", label: "INGLATERRA", labelPos: [-1.4, 52.0], points: [[-5.5, 50.1], [-4.2, 50.3], [-2.0, 50.6], [-0.2, 50.8], [1.4, 51.1], [1.7, 52.5], [0.3, 53.0], [-0.1, 54.0], [-1.6, 55.6], [-3.2, 55.0], [-3.1, 53.4], [-4.8, 52.8], [-5.2, 51.7], [-3.3, 51.4], [-4.6, 51.1], [-5.5, 50.1]] },
+            { country: "España", label: "ESPAÑA", labelPos: [-4.0, 40.1], points: [[-9.3, 43.0], [-7.5, 43.7], [-4.5, 43.5], [-1.8, 43.4], [0.5, 42.8], [3.3, 42.4], [2.2, 41.3], [0.7, 40.7], [-0.4, 39.4], [0.2, 38.7], [-1.0, 37.6], [-3.0, 36.7], [-5.6, 36.0], [-6.4, 36.6], [-7.5, 37.2], [-9.0, 37.0], [-9.4, 38.7], [-8.9, 41.2], [-8.8, 42.4], [-9.3, 43.0]] },
+            { country: "Francia", label: "FRANCIA", labelPos: [2.3, 46.7], points: [[-4.8, 48.4], [-2.0, 48.7], [-1.8, 49.7], [0.1, 49.5], [1.8, 51.0], [4.2, 50.0], [6.2, 49.5], [8.2, 49.0], [7.6, 47.6], [6.9, 46.2], [6.8, 44.8], [7.5, 43.8], [6.2, 43.1], [4.8, 43.4], [3.1, 43.2], [3.2, 42.4], [0.5, 42.8], [-1.8, 43.4], [-1.3, 44.6], [-1.1, 46.1], [-2.3, 47.3], [-4.8, 48.4]] },
+            { country: "Francia", label: "", labelPos: null, points: [[8.7, 42.6], [9.5, 43.0], [9.5, 41.4], [8.6, 42.0], [8.7, 42.6]] },
+            { country: "Italia", label: "ITALIA", labelPos: [12.5, 43.2], points: [[6.7, 45.1], [7.6, 46.0], [9.5, 46.3], [11.5, 47.0], [13.7, 46.5], [13.9, 45.6], [12.3, 45.4], [12.6, 44.0], [13.8, 43.3], [14.9, 42.1], [16.1, 41.9], [16.1, 41.2], [18.4, 40.1], [18.3, 39.8], [16.8, 40.3], [16.5, 39.5], [17.1, 38.9], [16.2, 38.0], [15.6, 38.1], [15.8, 39.2], [15.1, 40.2], [14.1, 40.8], [12.5, 41.6], [11.1, 42.4], [10.3, 43.7], [9.6, 44.1], [8.9, 44.4], [7.5, 43.8], [6.7, 45.1]] },
+            { country: "Italia", label: "", labelPos: null, points: [[12.4, 37.9], [13.8, 38.1], [15.6, 38.2], [15.1, 36.7], [13.6, 37.1], [12.5, 37.6], [12.4, 37.9]] },
+            { country: "Italia", label: "", labelPos: null, points: [[8.2, 40.9], [9.4, 41.2], [9.8, 40.4], [9.5, 39.1], [8.4, 39.1], [8.2, 40.9]] }
+        ];
+
+        function buildSvgAtlasFeaturesFallback() {
+            const matchesCountry = (c) => !selectedCountry || c === selectedCountry;
+            const wineFeats = allWines
+                .filter(w => matchesCountry(w.country))
+                .map(w => ({
+                    id: w.id,
+                    geometry: { coordinates: [w.longitude, w.latitude] },
+                    properties: {
+                        ...w,
+                        feature_type: "winery",
+                        soil: w.soil_type,
+                        signature_grape: "Varietal de la D.O.",
+                        autonomous_community: w.country
+                    }
+                }));
+            const regionFeats = allRegions
+                .filter(r => matchesCountry(r.country) && Array.isArray(r.coordinates) && r.coordinates.length === 2)
+                .map(r => ({
+                    id: `region-${r.appellation.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+                    geometry: { coordinates: r.coordinates },
+                    properties: {
+                        ...r,
+                        name: r.appellation,
+                        feature_type: "region",
+                        climate: r.climate_type,
+                        winery_count: r.wine_count
+                    }
+                }));
+            if (activeAtlasLayer === "regions") return regionFeats;
+            if (activeAtlasLayer === "all") return [...regionFeats, ...wineFeats];
+            return wineFeats;
+        }
+
         function initSvgFallbackAtlas() {
             activeBasemapId = "svg-offline";
             syncBasemapButtons("svg-offline");
-            const mapDiv = document.getElementById("atlas-map");
-            const fallbackDiv = document.getElementById("atlas-svg-fallback");
+            toggleAtlasSvgVisibility(true);
             const canvas = document.getElementById("svg-map-canvas");
-            if (mapDiv) mapDiv.classList.add("hidden");
-            if (fallbackDiv) fallbackDiv.classList.remove("hidden");
-            const labelEl = document.getElementById("map-engine-label");
-            if (labelEl) labelEl.textContent = "Cartografía: SVG Determinista (Modo Offline)";
+            if (!canvas) return;
 
-            const svgW = 680;
-            const svgH = 340;
-            const lonToX = (lon) => ((lon - (-9.5)) / (3.5 - (-9.5))) * (svgW - 80) + 40;
-            const latToY = (lat) => ((44.0 - lat) / (44.0 - 36.0)) * (svgH - 60) + 30;
+            const featuresToPlot = atlasFeatures.length > 0 ? atlasFeatures : buildSvgAtlasFeaturesFallback();
+            const svgW = 760;
+            const svgH = 420;
+            const padX = 36;
+            const padY = 26;
+
+            let latMin = 35.2;
+            let latMax = 53.2;
+            let lonMin = -10.2;
+            let lonMax = 19.2;
+            if (selectedCountry && COUNTRY_BOUNDS[selectedCountry]) {
+                const b = COUNTRY_BOUNDS[selectedCountry];
+                latMin = b[0][0] - 0.6;
+                lonMin = b[0][1] - 0.8;
+                latMax = b[1][0] + 0.6;
+                lonMax = b[1][1] + 0.8;
+            }
+
+            const midLatRad = (((latMin + latMax) / 2) * Math.PI) / 180;
+            const cosLat = Math.max(0.55, Math.cos(midLatRad));
+            const lonSpanEff = (lonMax - lonMin) * cosLat;
+            const latSpan = latMax - latMin;
+            const scale = Math.min((svgW - padX * 2) / lonSpanEff, (svgH - padY * 2) / latSpan);
+            const offsetX = (svgW - lonSpanEff * scale) / 2;
+            const offsetY = (svgH - latSpan * scale) / 2;
+
+            const lonToX = (lon) => offsetX + (lon - lonMin) * cosLat * scale;
+            const latToY = (lat) => offsetY + (latMax - lat) * scale;
 
             let svgContent = `
-                <svg viewBox="0 0 ${svgW} ${svgH}" class="w-full h-full select-none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M 60 70 Q 180 40 320 50 Q 500 50 560 90 L 590 140 Q 580 200 540 260 Q 480 320 380 330 Q 280 330 180 320 Q 90 300 70 230 Q 50 150 60 70 Z" fill="#EFE7D6" stroke="rgba(35, 27, 22, 0.2)" stroke-width="1.5" stroke-dasharray="3 3"/>
-                    <path d="M 120 70 Q 280 80 500 100" fill="none" stroke="rgba(107, 29, 40, 0.12)" stroke-width="1"/>
-                    <path d="M 100 160 Q 300 170 540 180" fill="none" stroke="rgba(107, 29, 40, 0.12)" stroke-width="1"/>
+                <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet" class="w-full h-full select-none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mapa vectorial europeo offline de regiones y bodegas">
+                    <rect x="0" y="0" width="${svgW}" height="${svgH}" rx="4" fill="#F7F2E8" />
             `;
 
-            atlasFeatures.forEach(feat => {
+            // Graticule lines
+            for (let lat = 36; lat <= 52; lat += 4) {
+                if (lat < latMin || lat > latMax) continue;
+                const y = latToY(lat).toFixed(1);
+                svgContent += `<line x1="12" y1="${y}" x2="${svgW - 12}" y2="${y}" stroke="rgba(35, 27, 22, 0.06)" stroke-width="0.8" stroke-dasharray="2 4" />`;
+            }
+            for (let lon = -8; lon <= 16; lon += 4) {
+                if (lon < lonMin || lon > lonMax) continue;
+                const x = lonToX(lon).toFixed(1);
+                svgContent += `<line x1="${x}" y1="12" x2="${x}" y2="${svgH - 12}" stroke="rgba(35, 27, 22, 0.06)" stroke-width="0.8" stroke-dasharray="2 4" />`;
+            }
+
+            // European landmass outlines
+            EUROPE_SVG_POLYGONS.forEach(poly => {
+                const isSelectedCountry = !selectedCountry || poly.country === selectedCountry;
+                const pathD = poly.points
+                    .map((pt, idx) => `${idx === 0 ? "M" : "L"} ${lonToX(pt[0]).toFixed(1)} ${latToY(pt[1]).toFixed(1)}`)
+                    .join(" ") + " Z";
+                const fill = isSelectedCountry ? "#EFE7D6" : "#F3ECE0";
+                const stroke = isSelectedCountry ? "rgba(35, 27, 22, 0.28)" : "rgba(35, 27, 22, 0.10)";
+                svgContent += `<path d="${pathD}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round" />`;
+                if (poly.label && poly.labelPos && isSelectedCountry) {
+                    const lx = lonToX(poly.labelPos[0]).toFixed(1);
+                    const ly = latToY(poly.labelPos[1]).toFixed(1);
+                    svgContent += `<text x="${lx}" y="${ly}" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="9" letter-spacing="1.6" fill="rgba(106, 90, 79, 0.72)">${escapeHtml(poly.label)}</text>`;
+                }
+            });
+
+            // Background region halos when showing wineries layer so both regions & wineries appear
+            if (activeAtlasLayer === "wineries" && allRegions.length > 0) {
+                allRegions.forEach(reg => {
+                    if (selectedCountry && reg.country !== selectedCountry) return;
+                    if (!Array.isArray(reg.coordinates) || reg.coordinates.length < 2) return;
+                    const rx = lonToX(reg.coordinates[0]).toFixed(1);
+                    const ry = latToY(reg.coordinates[1]).toFixed(1);
+                    const isDoActive = !selectedDo || selectedDo === reg.appellation;
+                    svgContent += `
+                        <g class="svg-region-halo cursor-pointer" data-do="${escapeHtml(reg.appellation)}" transform="translate(${rx}, ${ry})" opacity="${isDoActive ? '0.9' : '0.3'}">
+                            <circle r="11" fill="rgba(156, 111, 56, 0.14)" stroke="rgba(156, 111, 56, 0.55)" stroke-width="1" stroke-dasharray="2 2" />
+                            <title>${escapeHtml(reg.appellation)} (${escapeHtml(reg.country)} · ${reg.wine_count} vinos)</title>
+                        </g>
+                    `;
+                });
+            }
+
+            // Plot regions and wineries
+            const sortedFeatures = [...featuresToPlot].sort((a, b) => {
+                const aReg = a.properties.feature_type === "region" ? 0 : 1;
+                const bReg = b.properties.feature_type === "region" ? 0 : 1;
+                return aReg - bReg;
+            });
+
+            sortedFeatures.forEach(feat => {
                 const coords = feat.geometry.coordinates;
-                const x = lonToX(coords[0]);
-                const y = latToY(coords[1]);
+                const x = lonToX(coords[0]).toFixed(1);
+                const y = latToY(coords[1]).toFixed(1);
                 const isRegion = feat.properties.feature_type === "region";
-                const r = isRegion ? 9 : 7;
+                const isActive = activeAtlasFeature && activeAtlasFeature.id === feat.id;
+                const r = isRegion ? 8 : (isActive ? 6.5 : 4.5);
                 const fill = isRegion ? "#9C6F38" : "#6B1D28";
+                const stroke = isActive ? "#231B16" : "#FAF6EE";
+                const strokeW = isActive ? "2" : "1.2";
+                const opacity = (!selectedDo || feat.properties.appellation === selectedDo) ? "1.0" : "0.28";
                 svgContent += `
-                    <g class="svg-pin cursor-pointer group" data-feat-id="${escapeHtml(feat.id)}" data-do="${escapeHtml(feat.properties.appellation)}" transform="translate(${x}, ${y})">
-                        <circle r="${r}" fill="${fill}" stroke="#FAF6EE" stroke-width="1.5" />
-                        <circle r="2.2" fill="#FAF6EE"/>
-                        <title>${escapeHtml(feat.properties.winery || feat.properties.name)} (${escapeHtml(feat.properties.appellation)})</title>
+                    <g class="svg-pin cursor-pointer" data-feat-id="${escapeHtml(feat.id)}" data-do="${escapeHtml(feat.properties.appellation)}" transform="translate(${x}, ${y})" opacity="${opacity}">
+                        <circle r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" />
+                        <circle r="${isRegion ? 2.4 : 1.6}" fill="#FAF6EE" />
+                        <title>${escapeHtml(feat.properties.winery || feat.properties.name)} (${escapeHtml(feat.properties.appellation)} · ${escapeHtml(feat.properties.country || "")})</title>
                     </g>
                 `;
             });
 
-            svgContent += `</svg>`;
+            // Legend inside SVG
+            svgContent += `
+                    <g transform="translate(14, ${svgH - 22})">
+                        <circle cx="6" cy="0" r="4.5" fill="#6B1D28" stroke="#FAF6EE" stroke-width="1" />
+                        <text x="15" y="3" font-family="'JetBrains Mono', monospace" font-size="9" fill="#6A5A4F">Bodegas</text>
+                        <circle cx="78" cy="0" r="6" fill="#9C6F38" stroke="#FAF6EE" stroke-width="1" />
+                        <text x="89" y="3" font-family="'JetBrains Mono', monospace" font-size="9" fill="#6A5A4F">Regiones D.O.</text>
+                    </g>
+                </svg>
+            `;
             canvas.innerHTML = svgContent;
+
+            const svgCounter = document.getElementById("svg-fallback-counter");
+            if (svgCounter) {
+                const wCount = featuresToPlot.filter(f => f.properties.feature_type === "winery").length;
+                const rCount = new Set(featuresToPlot.map(f => f.properties.appellation)).size;
+                svgCounter.textContent = wCount > 0 ? `${rCount} Regiones · ${wCount} Bodegas` : `${rCount} Regiones`;
+            }
 
             canvas.querySelectorAll(".svg-pin").forEach(pin => {
                 pin.addEventListener("click", () => {
                     const fid = pin.getAttribute("data-feat-id");
-                    const found = atlasFeatures.find(f => f.id === fid);
-                    if (found) selectAtlasFeature(found);
+                    const found = featuresToPlot.find(f => f.id === fid);
+                    if (found) {
+                        selectAtlasFeature(found);
+                        highlightSvgMarkers(selectedDo);
+                    }
+                });
+            });
+
+            canvas.querySelectorAll(".svg-region-halo").forEach(halo => {
+                halo.addEventListener("click", () => {
+                    const doName = halo.getAttribute("data-do");
+                    const matchingDoBtn = Array.from(document.querySelectorAll(".do-pill")).find(b => b.getAttribute("data-do") === doName);
+                    if (doName) filterAtlasByDo(doName, matchingDoBtn);
                 });
             });
         }
@@ -2525,13 +2682,19 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             if (!canvas) return;
             canvas.querySelectorAll(".svg-pin").forEach(pin => {
                 const pinDo = pin.getAttribute("data-do");
-                const circle = pin.querySelector("circle");
-                if (!circle) return;
-                if (!doName || pinDo === doName) {
-                    circle.setAttribute("opacity", "1.0");
-                } else {
-                    circle.setAttribute("opacity", "0.3");
+                const fid = pin.getAttribute("data-feat-id");
+                const isSelectedFeat = activeAtlasFeature && activeAtlasFeature.id === fid;
+                const match = !doName || pinDo === doName;
+                pin.setAttribute("opacity", match ? "1.0" : "0.28");
+                const outerCircle = pin.querySelector("circle");
+                if (outerCircle) {
+                    outerCircle.setAttribute("stroke", isSelectedFeat ? "#231B16" : "#FAF6EE");
+                    outerCircle.setAttribute("stroke-width", isSelectedFeat ? "2" : "1.2");
                 }
+            });
+            canvas.querySelectorAll(".svg-region-halo").forEach(halo => {
+                const haloDo = halo.getAttribute("data-do");
+                halo.setAttribute("opacity", !doName || haloDo === doName ? "0.9" : "0.25");
             });
         }
 
@@ -2615,10 +2778,13 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     feature_type: "winery",
                     soil: wine.soil_type,
                     signature_grape: "Varietal de la D.O.",
-                    autonomous_community: "España"
+                    autonomous_community: wine.country || "España"
                 }
             };
             selectAtlasFeature(feat);
+            if (activeBasemapId === "svg-offline") {
+                initSvgFallbackAtlas();
+            }
             setTimeout(() => {
                 if (atlasMap) {
                     atlasMap.invalidateSize();

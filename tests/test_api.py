@@ -467,6 +467,8 @@ def test_dashboard_ui_zero_key_opensource_cartography() -> None:
     assert "vinum-editorial-tiles" in html
     assert "OpenStreetMap Editorial (Zero-Key Open Source)" in html
     assert 'id="atlas-basemap-bar"' in html
+    assert 'id="map-engine-label"' not in html
+    assert "Cartografía:" not in html
     assert 'data-basemap="osm-editorial"' in html
     assert 'data-basemap="ign-espana"' in html
     assert 'data-basemap="svg-offline"' in html
@@ -475,7 +477,7 @@ def test_dashboard_ui_zero_key_opensource_cartography() -> None:
 
 
 def test_dashboard_ui_european_atlas_and_country_filters() -> None:
-    """Verify GET / embeds European country selectors and dynamic flyToBounds."""
+    """Verify GET / embeds European country selectors, bounds, and SVG vector map."""
     response = client.get("/")
     assert response.status_code == 200
     html = response.text
@@ -487,8 +489,13 @@ def test_dashboard_ui_european_atlas_and_country_filters() -> None:
     assert 'id="catalog-country-filter"' in html
     assert "EUROPE_DEFAULT_VIEW" in html
     assert "COUNTRY_BOUNDS" in html
+    assert "fitAtlasToCurrentScope" in html
     assert "flyToBounds" in html
     assert "filterAtlasByCountry" in html
+    assert "atlasCountryFilter" not in html
+    assert "EUROPE_SVG_POLYGONS" in html
+    assert "toggleAtlasSvgVisibility" in html
+    assert "Atlas Vectorial Europeo (SVG Offline)" in html
 
 
 def test_dashboard_ui_dynamic_header_kpis() -> None:
