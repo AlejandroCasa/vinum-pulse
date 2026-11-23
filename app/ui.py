@@ -218,7 +218,8 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 background-color: #FAF6EE !important;
                 color: #231B16 !important;
             }
-            .no-print, #app-header, header, footer, #toast-container, #error-banner,
+            .no-print, .print-hide-price, [data-price], #plan-total-price,
+            #app-header, header, footer, #toast-container, #error-banner,
             #panel-atlas, #panel-carte, #panel-bodega,
             #occasion-selector, #plan-inputs-container, #btn-generate-menu-plan,
             #btn-print-menu, #progression-chart-panel,
@@ -976,7 +977,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                         <div id="print-courses-list" class="space-y-6 divide-y divide-espresso/10"></div>
 
                         <div class="text-center pt-6 border-t border-espresso/15 text-xs font-serif italic text-walnut space-y-1">
-                            <p>Vinum Pulse · Caviste &amp; Table · Bodega y Gastronomía Española</p>
+                            <p>Vinum Pulse · Caviste &amp; Table · Bodega y Gastronomía Europea</p>
                             <p class="text-[10px] font-mono text-walnut/70 uppercase tracking-widest">Salud y buen provecho</p>
                         </div>
 
@@ -3544,9 +3545,9 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                             <h4 class="font-serif text-2xl text-espresso">${escapeHtml(dishName)}</h4>
                             <span class="font-serif text-xl text-bordeaux font-normal">${escapeHtml(wine.name || '')}</span>
                         </div>
-                        <div class="flex justify-between items-baseline text-xs font-mono text-walnut">
+                        <div class="flex flex-wrap justify-between items-baseline gap-2 text-xs font-mono text-walnut">
                             <span>Bodega: ${escapeHtml(wine.winery || '')}</span>
-                            <span class="tabular-nums font-medium text-espresso">${(wine.price_eur || 0).toFixed(2)} €</span>
+                            ${wine.glass_type ? `<span>Copa ${escapeHtml(wine.glass_type)}${wine.serving_temp_c ? ` · ${wine.serving_temp_c.toFixed(0)} °C` : ''}</span>` : ''}
                         </div>
                         <p class="font-serif italic text-sm text-walnut/90">«${escapeHtml(wine.tagline || wine.tasting_notes || '')}»</p>
                     </div>

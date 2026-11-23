@@ -377,7 +377,13 @@ def test_dashboard_ui_w47_components() -> None:
     assert 'id="evening-planner-section"' in html
     assert 'id="printable-menu-card"' in html
     assert "@media print" in html
+    assert ".print-hide-price" in html
     assert "/api/v1/pairings/menu-plan" in html
+    print_start = html.index('document.getElementById("print-courses-list")')
+    print_end = html.index("async function addCurrentMenuTrioToCellar()", print_start)
+    print_block = html[print_start:print_end]
+    assert "price_eur" not in print_block
+    assert "€" not in print_block
 
 
 def test_dashboard_ui_tabbed_workspace_navigation() -> None:
