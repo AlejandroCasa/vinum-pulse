@@ -25,15 +25,15 @@ def engine() -> SommelierEngine:
 
 
 def test_catalog_initialization(engine: SommelierEngine) -> None:
-    """Verify default catalog contains 200 European wines and 45 dishes."""
+    """Verify default catalog contains 225 European wines/vermouths and 50 dishes."""
     wines = engine.get_wines()
     dishes = engine.get_dishes()
 
-    assert len(wines) == len(CURATED_WINES) == 200
-    assert len(dishes) == len(CURATED_DISHES) == 45
-    assert len({w.id for w in wines}) == 200
-    assert len({w.name for w in wines}) == 200
-    assert len({d.id for d in dishes}) == 45
+    assert len(wines) == len(CURATED_WINES) == 225
+    assert len(dishes) == len(CURATED_DISHES) == 50
+    assert len({w.id for w in wines}) == 225
+    assert len({w.name for w in wines}) == 225
+    assert len({d.id for d in dishes}) == 50
 
 
 def test_european_catalog_country_distribution_and_bounds() -> None:
@@ -45,7 +45,7 @@ def test_european_catalog_country_distribution_and_bounds() -> None:
         "Inglaterra": (50.0, 52.0, -2.5, 2.0),
     }
     expected_counts = {
-        "España": 65,
+        "España": 90,
         "Francia": 55,
         "Italia": 55,
         "Inglaterra": 25,
@@ -336,21 +336,21 @@ def test_atlas_geojson_generation() -> None:
     # Wineries layer
     wineries_fc = engine.get_atlas_geojson(layer="wineries")
     assert wineries_fc.type == "FeatureCollection"
-    assert len(wineries_fc.features) == 200
+    assert len(wineries_fc.features) == 225
     all_appellations = {f.properties["appellation"] for f in wineries_fc.features}
-    assert len(all_appellations) == 32
+    assert len(all_appellations) == 34
 
     # Regions layer
     regions_fc = engine.get_atlas_geojson(layer="regions")
     assert regions_fc.type == "FeatureCollection"
-    assert len(regions_fc.features) == 32
+    assert len(regions_fc.features) == 34
     for feat in regions_fc.features:
         assert feat.properties["feature_type"] == "region"
         assert feat.properties["winery_count"] >= 1
 
     # All layer
     all_fc = engine.get_atlas_geojson(layer="all")
-    assert len(all_fc.features) == 232
+    assert len(all_fc.features) == 259
 
     # Country-filtered layer
     uk_fc = engine.get_atlas_geojson(layer="all", country="Inglaterra")
@@ -359,7 +359,7 @@ def test_atlas_geojson_generation() -> None:
 
 
 def test_gastronomic_sections_coverage() -> None:
-    """Verify all 9 required gastronomic sections are present in catalog."""
+    """Verify all 10 required gastronomic sections are present in catalog."""
     expected_sections = [
         "Entrantes y Cuchara",
         "Ensaladas y Huerta",
@@ -367,6 +367,7 @@ def test_gastronomic_sections_coverage() -> None:
         "Embutidos y Quesos",
         "Pescados y Mariscos",
         "Arroces",
+        "Pasta",
         "Carnes y Caza",
         "Postres y Dulces",
         "Platos Vegetarianos y Setas",
@@ -556,6 +557,9 @@ def test_planner_helper_functions() -> None:
     test_wine.wine_type = WineType.SPARKLING
     assert "burbuja fina" in compute_uncork_tip(test_wine)
 
+    test_wine.wine_type = WineType.VERMOUTH
+    assert "vaso bajo" in compute_uncork_tip(test_wine).lower()
+
     test_wine.wine_type = WineType.RED
     assert "directamente al momento" in compute_uncork_tip(test_wine)
 
@@ -591,5 +595,67 @@ def test_planner_helper_functions() -> None:
     assert "mantel de lino" in compute_ambience_tip("Comida Familiar de Domingo")
     assert "pintxos" in compute_ambience_tip("Tardeo & Tapas Gourmet")
     assert "Ambiente relajado" in compute_ambience_tip("Evento Especial")
-    assert "pintxos" in compute_ambience_tip("Tardeo & Tapas Gourmet")
-    assert "Ambiente relajado" in compute_ambience_tip("Evento Especial")
+
+
+def test_spanish_vermouths_and_pasta_catalog(engine: SommelierEngine) -> None:
+    """Verify 25 Spanish vermouths (10+ Madrid) and 6 Pasta dishes are seeded."""
+    vermouths = engine.get_wines(wine_type=WineType.VERMOUTH)
+    assert len(vermouths) == 25
+    assert all(v.country == "España" for v in vermouths)
+    assert all(v.bottle_silhouette == "Jerezana" for v in vermouths)
+    madrid = [v for v in vermouths if v.appellation == "D.O. Vinos de Madrid"]
+    assert len(madrid) >= 10
+
+    pasta = engine.get_dishes(category="Pasta")
+    assert len(pasta) == 6
+    rec = engine.recommend_pairing(
+        DishPairingRequest(
+            dish_id="gilda-antxoa-piparra",
+            max_budget_eur=25.0,
+            preferred_type=WineType.VERMOUTH,
+        )
+    )
+    assert rec.primary_wine.wine_type == WineType.VERMOUTH
+    assert "Consejo de servicio:" in rec.sommelier_explanation
+
+
+def test_flexible_evening_menu_planner_and_validation(
+    engine: SommelierEngine,
+) -> None:
+    """Verify flexible 3-to-7 course planner, validation, and tight-budget fallback."""
+    from pydantic import ValidationError
+
+    from app.schemas import CourseInput
+
+    with pytest.raises(ValidationError):
+        EveningMenuRequest(occasion="Test", total_budget_eur=100.0)
+
+    req5 = EveningMenuRequest(
+        occasion="Cena Romántica",
+        total_budget_eur=180.0,
+        courses=[
+            CourseInput(course_type="Aperitivo", dish_id="gilda-antxoa-piparra"),
+            CourseInput(course_type="Entrante", dish_id="salmorejo-cordobes"),
+            CourseInput(course_type="Pasta / Arroz", dish_id="cacio-e-pepe-romano"),
+            CourseInput(course_type="Principal", dish_id="chuleton-brasa"),
+            CourseInput(course_type="Postre", dish_id="tiramisu-clasico"),
+        ],
+    )
+    plan5 = engine.plan_evening_menu(req5)
+    assert len(plan5.courses) == 5
+    assert plan5.total_price_eur <= 180.0
+    assert len({c.wine.id for c in plan5.courses}) == 5
+
+    # Tight budget covering exactly the 3 cheapest bottles
+    cheapest_three = sorted(engine.get_wines(limit=500), key=lambda w: w.price_eur)[:3]
+    exact_min = sum(w.price_eur for w in cheapest_three)
+    req_tight = EveningMenuRequest(
+        occasion="Tardeo & Tapas Gourmet",
+        starter_dish_id="gilda-antxoa-piparra",
+        main_dish_id="spaghetti-alla-carbonara",
+        dessert_dish_id="queso-manchego",
+        total_budget_eur=exact_min,
+    )
+    plan_tight = engine.plan_evening_menu(req_tight)
+    assert len(plan_tight.courses) == 3
+    assert plan_tight.total_price_eur <= exact_min + 1e-6

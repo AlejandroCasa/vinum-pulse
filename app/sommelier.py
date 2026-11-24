@@ -576,6 +576,7 @@ class SommelierEngine:
             "Copita": "su forma estrecha canaliza aromas intensos y punzantes",
             "Tulipa": "preserva la burbuja fina y dirige los aromas hacia la nariz",
             "Flauta": "mantiene la efervescencia vertical y la frescura",
+            "Vaso bajo": "permite servirlo con hielo grueso y twist cítrico liberando sus botánicos",
         }
         glass_note = glass_reasons.get(
             wine.glass_type, "favorece una correcta expresión aromática"

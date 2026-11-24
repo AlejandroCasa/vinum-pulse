@@ -51,17 +51,18 @@ def test_list_wines_with_query_params() -> None:
 
 
 def test_list_dishes_endpoint() -> None:
-    """Verify /api/v1/dishes returns 45 gastronomic dishes across 9 sections."""
+    """Verify /api/v1/dishes returns 50 gastronomic dishes across 10 sections."""
     response = client.get("/api/v1/dishes")
     assert response.status_code == 200
     dishes = response.json()
-    assert len(dishes) == 45
+    assert len(dishes) == 50
     sample = dishes[0]
     assert "id" in sample
     assert "target_sensory" in sample
     assert "body" in sample["target_sensory"]
     categories = {d["category"] for d in dishes}
-    assert len(categories) == 9
+    assert len(categories) == 10
+    assert "Pasta" in categories
     dish_ids = {d["id"] for d in dishes}
     for expected_id in (
         "boeuf-bourguignon",
@@ -71,16 +72,22 @@ def test_list_dishes_endpoint() -> None:
         "beef-wellington",
         "stilton-aged-cheddar",
         "tiramisu-clasico",
+        "spaghetti-alla-carbonara",
+        "cacio-e-pepe-romano",
+        "pappardelle-ragu-cinghiale",
+        "spaghetti-alle-vongole",
+        "lasagna-alla-bolognese",
+        "tagliatelle-al-tartufo",
     ):
         assert expected_id in dish_ids
 
 
 def test_list_regions_endpoint() -> None:
-    """Verify /api/v1/regions returns summaries across all 32 European appellations."""
+    """Verify /api/v1/regions returns summaries across all 34 European appellations."""
     response = client.get("/api/v1/regions")
     assert response.status_code == 200
     regions = response.json()
-    assert len(regions) == 32
+    assert len(regions) == 34
     sample = regions[0]
     assert "appellation" in sample
     assert "country" in sample
@@ -92,13 +99,13 @@ def test_list_regions_endpoint() -> None:
 def test_country_query_filters_across_catalog_endpoints() -> None:
     """Verify ?country= filters wines, regions, and atlas GeoJSON accurately."""
     expected_wines = {
-        "España": 65,
+        "España": 90,
         "Francia": 55,
         "Italia": 55,
         "Inglaterra": 25,
     }
     expected_regions = {
-        "España": 12,
+        "España": 14,
         "Francia": 8,
         "Italia": 8,
         "Inglaterra": 4,
@@ -176,20 +183,22 @@ def test_dashboard_ui_endpoint() -> None:
 
 
 def test_atlas_geojson_endpoint_wineries() -> None:
-    """Verify /api/v1/atlas/geojson returns valid GeoJSON for 200 European wineries."""
+    """Verify /api/v1/atlas/geojson returns valid GeoJSON for 225 references."""
     response = client.get("/api/v1/atlas/geojson")
     assert response.status_code == 200
     data = response.json()
     assert data["type"] == "FeatureCollection"
     features = data["features"]
-    assert len(features) == 200
+    assert len(features) == 225
 
-    # Verify all 32 European appellations and 4 countries are represented
+    # Verify all 34 European appellations and 4 countries are represented
     appellations = {f["properties"]["appellation"] for f in features}
     countries = {f["properties"]["country"] for f in features}
-    assert len(appellations) == 32
+    assert len(appellations) == 34
     assert countries == {"España", "Francia", "Italia", "Inglaterra"}
     assert "D.O.Ca. Rioja" in appellations
+    assert "D.O. Vinos de Madrid" in appellations
+    assert "D.O. Tarragona / Reus" in appellations
     assert "AOC Bordeaux" in appellations
     assert "DOCG Piemonte" in appellations
     assert "PDO Sussex" in appellations
@@ -226,7 +235,7 @@ def test_atlas_geojson_endpoint_layers() -> None:
     assert reg_res.status_code == 200
     reg_data = reg_res.json()
     assert reg_data["type"] == "FeatureCollection"
-    assert len(reg_data["features"]) == 32
+    assert len(reg_data["features"]) == 34
     for feat in reg_data["features"]:
         assert feat["properties"]["feature_type"] == "region"
         assert "country" in feat["properties"]
@@ -238,7 +247,7 @@ def test_atlas_geojson_endpoint_layers() -> None:
     all_res = client.get("/api/v1/atlas/geojson", params={"layer": "all"})
     assert all_res.status_code == 200
     all_data = all_res.json()
-    assert len(all_data["features"]) == 232
+    assert len(all_data["features"]) == 259
 
 
 def test_dashboard_ui_atlas_integration() -> None:
@@ -526,15 +535,95 @@ def test_dashboard_ui_dynamic_header_kpis() -> None:
     assert response.status_code == 200
     html = response.text
 
-    assert "200 Vinos" in html
-    assert "32 D.O." in html
-    assert "32 Regiones · 200 Bodegas" in html
+    assert "225 Vinos" in html
+    assert "34 D.O." in html
+    assert "34 Regiones · 225 Bodegas" in html
     assert "Europa (4 Países)" in html
     assert "Todos los países (4)" in html
-    assert "Todas las Denominaciones (32)" in html
+    assert "Todas las Denominaciones (34)" in html
     assert "36 Vinos" not in html
     assert "12 D.O." not in html
     assert "36 bodegas emblemáticas" not in html
+
+
+def test_w48_p1_vermouths_pasta_and_flexible_menu_planner_api() -> None:
+    """Verify W48 P1 endpoints: 25 Spanish vermouths, Pasta section, and 3-7 courses."""
+    # 1. Vermouths filter (25 total, >= 10 from Madrid)
+    v_res = client.get("/api/v1/wines", params={"wine_type": "Vermouth"})
+    assert v_res.status_code == 200
+    vermouths = v_res.json()
+    assert len(vermouths) == 25
+    assert all(v["country"] == "España" for v in vermouths)
+    madrid_vermouths = [
+        v for v in vermouths if v["appellation"] == "D.O. Vinos de Madrid"
+    ]
+    assert len(madrid_vermouths) >= 10
+
+    # 2. Pasta category filter
+    p_res = client.get("/api/v1/dishes", params={"category": "Pasta"})
+    assert p_res.status_code == 200
+    pasta_dishes = p_res.json()
+    assert len(pasta_dishes) == 6
+    assert all(d["category"] == "Pasta" for d in pasta_dishes)
+
+    # 3. Flexible 5-course and 7-course menu plans
+    five_course_payload = {
+        "occasion": "Cena Romántica",
+        "total_budget_eur": 240.0,
+        "courses": [
+            {"course_type": "Aperitivo", "dish_id": "gilda-antxoa-piparra"},
+            {"course_type": "Entrante", "dish_id": "salmorejo-cordobes"},
+            {"course_type": "Pasta / Arroz", "dish_id": "spaghetti-alla-carbonara"},
+            {"course_type": "Principal", "dish_id": "chuleton-brasa"},
+            {"course_type": "Postre", "dish_id": "tiramisu-clasico"},
+        ],
+    }
+    res5 = client.post("/api/v1/pairings/menu-plan", json=five_course_payload)
+    assert res5.status_code == 200
+    plan5 = res5.json()
+    assert len(plan5["courses"]) == 5
+    assert plan5["total_price_eur"] <= 240.0
+    assert len({c["wine"]["id"] for c in plan5["courses"]}) == 5
+    assert plan5["courses"][2]["course_type"] == "Pasta / Arroz"
+
+    seven_course_payload = {
+        "occasion": "Comida Familiar de Domingo",
+        "total_budget_eur": 360.0,
+        "courses": [
+            {"course_type": "Aperitivo", "dish_id": "gilda-antxoa-piparra"},
+            {"course_type": "Entrante", "dish_id": "burrata-pugliese"},
+            {"course_type": "Pescado / Marisco", "dish_id": "spaghetti-alle-vongole"},
+            {"course_type": "Pasta / Arroz", "dish_id": "tagliatelle-al-tartufo"},
+            {"course_type": "Principal", "dish_id": "bistecca-alla-fiorentina"},
+            {"course_type": "Quesos", "dish_id": "queso-manchego"},
+            {"course_type": "Postre", "dish_id": "tarta-queso-idiazabal"},
+        ],
+    }
+    res7 = client.post("/api/v1/pairings/menu-plan", json=seven_course_payload)
+    assert res7.status_code == 200
+    plan7 = res7.json()
+    assert len(plan7["courses"]) == 7
+    assert plan7["total_price_eur"] <= 360.0
+    assert len({c["wine"]["id"] for c in plan7["courses"]}) == 7
+
+    # 4. Reject >7 or <3 courses with 422
+    too_many = {
+        "occasion": "Test",
+        "total_budget_eur": 400.0,
+        "courses": [
+            {"course_type": "Entrante", "dish_id": "salmorejo-cordobes"}
+            for _ in range(8)
+        ],
+    }
+    assert client.post("/api/v1/pairings/menu-plan", json=too_many).status_code == 422
+
+    # 5. Verify UI embeds Vermut filter, Pasta category, and flexible course builder
+    html = client.get("/").text
+    assert 'data-type="Vermouth"' in html
+    assert '"Pasta"' in html
+    assert 'id="plan-courses-builder"' in html
+    assert 'id="btn-add-course"' in html
+    assert "PLANNER_COURSE_TYPES" in html
 
 
 def test_dashboard_ui_dynamic_header_kpis_reflect_catalog_changes(

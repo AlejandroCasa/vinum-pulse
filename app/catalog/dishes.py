@@ -1,4 +1,4 @@
-"""Curated European gastronomic catalog of 45 dishes across 9 culinary sections."""
+"""Curated European gastronomic catalog of 50 dishes across 10 culinary sections."""
 
 from app.schemas import Dish, SensoryRadar, WineType
 
@@ -259,7 +259,68 @@ CURATED_DISHES: list[Dish] = [
         ),
         suggested_wine_type=WineType.WHITE,
     ),
-    # --- 7. Carnes y Caza (10 dishes) ---
+    # --- 7. Pasta (6 dishes) ---
+    Dish(
+        id="tagliatelle-al-tartufo",
+        name="Tagliatelle freschi al Tartufo Bianco d'Alba",
+        category="Pasta",
+        description="Pasta fresca al huevo mantecada con mantequilla de montaña piamontesa, Parmigiano y finas láminas de trufa blanca de Alba.",
+        target_sensory=SensoryRadar(
+            body=7.5, acidity=8.3, tannins=7.2, fruit=8.2, oak=6.2
+        ),
+        suggested_wine_type=WineType.RED,
+    ),
+    Dish(
+        id="spaghetti-alla-carbonara",
+        name="Spaghetti alla Carbonara romana con guanciale",
+        category="Pasta",
+        description="Pasta al dente emulsionada con yema campera, Pecorino Romano DOP, pimienta negra recién molida y guanciale crujiente.",
+        target_sensory=SensoryRadar(
+            body=6.8, acidity=8.4, tannins=2.0, fruit=7.6, oak=3.5
+        ),
+        suggested_wine_type=WineType.WHITE,
+    ),
+    Dish(
+        id="cacio-e-pepe-romano",
+        name="Tonnarelli Cacio e Pepe tradicional de Roma",
+        category="Pasta",
+        description="Pasta fresca artesanal cremada exclusivamente con Pecorino Romano curado, agua de cocción y pimienta negra tostada.",
+        target_sensory=SensoryRadar(
+            body=6.2, acidity=8.6, tannins=1.6, fruit=7.4, oak=2.5
+        ),
+        suggested_wine_type=WineType.WHITE,
+    ),
+    Dish(
+        id="pappardelle-ragu-cinghiale",
+        name="Pappardelle fresche al Ragù di Cinghiale toscano",
+        category="Pasta",
+        description="Cintas anchas de pasta al huevo con ragú lento de jabalí marinado en vino tinto, bayas de enebro, romero y tomate San Marzano.",
+        target_sensory=SensoryRadar(
+            body=8.4, acidity=7.8, tannins=7.8, fruit=8.2, oak=7.2
+        ),
+        suggested_wine_type=WineType.RED,
+    ),
+    Dish(
+        id="spaghetti-alle-vongole",
+        name="Spaghetti alle Vongole Veraci con vino blanco",
+        category="Pasta",
+        description="Almejas veraci salteadas a fuego vivo con ajo laminado, guindilla, vino blanco seco, perejil fresco y aceite virgen extra.",
+        target_sensory=SensoryRadar(
+            body=4.8, acidity=9.0, tannins=1.2, fruit=7.8, oak=1.4
+        ),
+        suggested_wine_type=WineType.WHITE,
+    ),
+    Dish(
+        id="lasagna-alla-bolognese",
+        name="Lasagna alla Bolognese con ragú lento y bechamel",
+        category="Pasta",
+        description="Láminas de pasta verde de espinaca horneadas con ragú tradicional de ternera y cerdo, bechamel sedosa y Parmigiano 24 meses.",
+        target_sensory=SensoryRadar(
+            body=8.0, acidity=7.6, tannins=7.0, fruit=8.0, oak=6.4
+        ),
+        suggested_wine_type=WineType.RED,
+    ),
+    # --- 8. Carnes y Caza (10 dishes) ---
     Dish(
         id="chuleton-brasa",
         name="Chuletón de vaca vieja a la brasa",
@@ -411,7 +472,7 @@ CURATED_DISHES: list[Dish] = [
         ),
         suggested_wine_type=WineType.FORTIFIED,
     ),
-    # --- 9. Platos Vegetarianos y Setas (5 dishes) ---
+    # --- 10. Platos Vegetarianos y Setas (4 dishes) ---
     Dish(
         id="hongos-boletus-yema",
         name="Boletus edulis salteados al sarmiento con yema campera",
@@ -431,16 +492,6 @@ CURATED_DISHES: list[Dish] = [
             body=6.0, acidity=7.8, tannins=3.0, fruit=6.0, oak=4.5
         ),
         suggested_wine_type=WineType.WHITE,
-    ),
-    Dish(
-        id="tagliatelle-al-tartufo",
-        name="Tagliatelle freschi al Tartufo Bianco d'Alba",
-        category="Platos Vegetarianos y Setas",
-        description="Pasta fresca al huevo mantecada con mantequilla de montaña piamontesa, Parmigiano y finas láminas de trufa blanca de Alba.",
-        target_sensory=SensoryRadar(
-            body=7.5, acidity=8.3, tannins=7.2, fruit=8.2, oak=6.2
-        ),
-        suggested_wine_type=WineType.RED,
     ),
     Dish(
         id="ratatouille-provenzal",
