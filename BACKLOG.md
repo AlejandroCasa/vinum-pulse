@@ -2,13 +2,29 @@
 
 This file tracks prioritized engineering improvements, features, and completed milestones for **Vinum Pulse**.
 
-## 🎯 Prioritized Backlog (Sprint 2026-W49 — `v1.0.0` Closure)
+## 🎯 Prioritized Backlog (Sprint 2026-W49 — Final Features & `v1.0.0` Prep)
 
-### P0 — Production Release `v1.0.0` Readiness
-- [ ] **[cellar/valuation]** Cellar Vintage Valuation & Drinking Window Alerts (`GET /api/v1/cellar/analytics`): Compute total cellar valuation, country/regional diversification breakdown, and prioritized alerts for bottles entering their final optimal drinking window, wired into `#bodega` UI cards (Impact: 4/5 | Effort: M)
-- [ ] **[observability/metrics]** Prometheus Sommelier & Cellar Telemetry (`GET /metrics`): Expose deterministic Prometheus metrics in text format (`0.0.4`) tracking pairing queries by D.O., menu plans by course count and occasion, compatibility scores, and cellar stock valuation (Impact: 4/5 | Effort: S)
-- [ ] **[k8s]** Declarative Kubernetes Manifests (`k8s/`): Create `deployment.yaml`, `service.yaml`, and `networkpolicy.yaml` with hardened `securityContext` (`runAsNonRoot: true`, `UID 10001`, `readOnlyRootFilesystem: true`, `/tmp` volume for SQLite, probes on `/healthz`) and OPA/Rego policy validation for local `k3s` (Impact: 5/5 | Effort: S)
-- [ ] **[release/v1.0.0]** Portfolio `README.md`, Release Bump & Formal Closure (`v1.0.0`): Update `README.md`, bump version to `1.0.0` with `CHANGELOG.md`, verify Docker build + full CI/CD green, and log formal v1.0 closure ADR (Impact: 5/5 | Effort: S)
+### P0 — Product, Editorial UX & Live Catalog (`design-taste-frontend` + `ui-ux-pro-max`)
+- [ ] **[cellar/valuation]** Cellar Vintage Valuation & Drinking Window Alerts (`GET /api/v1/cellar/analytics` + `#bodega`): Compute total cellar valuation, country/regional diversification breakdown, and prioritized alerts for bottles entering their final optimal drinking window (Impact: 4/5 | Effort: M)
+- [ ] **[carte/country-preference-filter]** Country Selector in "Preferencias de Maridajes" (`#carte`, `DishPairingRequest.preferred_country`): Add country filter pills alongside the style selector in La Carte pairing preferences with graceful budget fallback (Impact: 4/5 | Effort: S)
+- [ ] **[veladas/grouped-courses-pairing]** Grouped Courses with Shared Wine Recommendation (`#veladas`, `POST /api/v1/pairings/menu-plan`): Allow grouping `n` courses to receive a single shared wine recommendation optimized for the combined sensory profile, adapting the progression curve and menu layout (Impact: 5/5 | Effort: M)
+- [ ] **[veladas/printable-menu-editorial-and-curve]** Editorial Printable Menu Redesign + Embedded Progression Curve + Page-Break Fix (`@media print`): Fix split course headers/bodies across pages (`break-inside: avoid`, `break-after: avoid`), embed the sensory progression curve cleanly in print/PDF output, and apply editorial *Taste* styling (Impact: 5/5 | Effort: M)
+- [ ] **[catalog/manual-wine-entry]** Manual Wine Creation to Global Catalog (`POST /api/v1/wines` + UI): Allow adding new wines to the global `wines` database by entering name, vintage, winery (and location only if winery is new), with automatic 5D sensory analysis, tasting notes, tagline, serving tips, and geolocation (Impact: 5/5 | Effort: L)
+
+### P1 — Frontend Refactor, Observability, K8s & Release Prep
+- [ ] **[frontend/refactor-ui-py-modular]** Modular Frontend Refactor (`app/ui.py` → `app/templates/` + `app/static/css/` + `app/static/js/`): Split monolithic `app/ui.py` into Jinja2 templates, dedicated CSS (`main.css`, `print.css`), and domain ES modules served via FastAPI `StaticFiles` (Impact: 5/5 | Effort: M-L)
+- [ ] **[observability/metrics]** Prometheus Sommelier & Cellar Telemetry (`GET /metrics`): Expose deterministic Prometheus metrics in text format (`0.0.4`) tracking pairing queries by D.O./country, menu plans by courses/groups/occasion, compatibility scores, and cellar stock valuation (Impact: 4/5 | Effort: S)
+- [ ] **[k8s]** Declarative Kubernetes Manifests (`k8s/`): Create `deployment.yaml`, `service.yaml`, and `networkpolicy.yaml` with hardened `securityContext` (`runAsNonRoot: true`, `UID 10001`, `readOnlyRootFilesystem: true`, SQLite volume, probes on `/healthz`) and OPA/Rego policy validation for local `k3s` (Impact: 4/5 | Effort: S)
+- [ ] **[release/v1.0.0-prep]** Portfolio `README.md`, `v1.0.0-rc1` Bump & `CHANGELOG.md` (Impact: 4/5 | Effort: S)
+
+---
+
+## 🖥️ Planned Sprint 2026-W50 — Local Laptop Server (Homelab) & Final `v1.0.0` Closure
+- [ ] **[homelab/laptop-os-hardening-guide]** Step-by-step Linux Server Setup Guide (`docs/HOMELAB-LAPTOP-DEPLOY.md`): Ubuntu Server/Debian minimal, lid-close ignore, static LAN IP / `vinum.local`, hardened SSH, `ufw`, `unattended-upgrades`, and Docker Engine (Impact: 5/5 | Effort: S)
+- [ ] **[homelab/docker-compose-prod-and-persistence]** Local Production Stack (`deploy/homelab/docker-compose.yml` + `Caddy`): Non-root container with persistent SQLite volume (`/data/vinum_pulse.db`), `restart: unless-stopped`, memory limits, and local HTTPS via Caddy (Impact: 5/5 | Effort: M)
+- [ ] **[homelab/automated-sqlite-backups-and-ops]** Online SQLite Daily Backups & 1-Command Update Script (`deploy/homelab/update.sh`, 14-day retention) (Impact: 5/5 | Effort: S)
+- [ ] **[homelab/tailscale-remote-access]** Zero-Trust Remote Access via Tailscale (optional, 0 open router ports) & lightweight health monitoring (Impact: 4/5 | Effort: S)
+- [ ] **[release/v1.0.0-final-closure]** End-to-End Hardware Smoke Test, `v1.0.0` Tag & Formal Closure ADR (`ADR-0034`) (Impact: 5/5 | Effort: S)
 
 ---
 
