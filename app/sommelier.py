@@ -736,6 +736,29 @@ class SommelierEngine:
                 results.append(row.to_schema(wine_profile=wine))
             return results
 
+    def get_catalog_stats(self) -> tuple[int, int, int]:
+        """Return live catalog totals as (wines, appellations, countries)."""
+        if self._session_factory is not None:
+            with self._session_factory() as session:
+                wine_count = int(session.scalar(select(func.count(WineModel.id))) or 0)
+                region_count = int(
+                    session.scalar(
+                        select(func.count(func.distinct(WineModel.appellation)))
+                    )
+                    or 0
+                )
+                country_count = int(
+                    session.scalar(select(func.count(func.distinct(WineModel.country))))
+                    or 0
+                )
+                return wine_count, region_count, country_count
+
+        return (
+            len(self._wines),
+            len({wine.appellation for wine in self._wines}),
+            len({wine.country for wine in self._wines}),
+        )
+
     def remove_from_cellar(
         self, item_id: str, user_id: str = "sommelier", quantity: int = 1
     ) -> dict[str, Any]:

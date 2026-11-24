@@ -1,8 +1,10 @@
 """Integration tests for Vinum Pulse FastAPI endpoints."""
 
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
-from app.main import app
+from app.main import app, sommelier
+from app.sommelier import SommelierEngine
 
 client = TestClient(app)
 
@@ -375,7 +377,13 @@ def test_dashboard_ui_w47_components() -> None:
     assert 'id="evening-planner-section"' in html
     assert 'id="printable-menu-card"' in html
     assert "@media print" in html
+    assert ".print-hide-price" in html
     assert "/api/v1/pairings/menu-plan" in html
+    print_start = html.index('document.getElementById("print-courses-list")')
+    print_end = html.index("async function addCurrentMenuTrioToCellar()", print_start)
+    print_block = html[print_start:print_end]
+    assert "price_eur" not in print_block
+    assert "€" not in print_block
 
 
 def test_dashboard_ui_tabbed_workspace_navigation() -> None:
@@ -439,11 +447,27 @@ def test_dashboard_ui_contextual_bridges_and_cellar_workspace() -> None:
     assert 'id="btn-pairing-view-atlas"' in html
     assert 'id="btn-add-trio-cellar"' in html
 
-    # Searchable catalog, progression curve, cellar analytics/CRUD & toast container
+    # Searchable, paginated & groupable catalog, progression curve, cellar UI & toast
     assert 'id="catalog-search-input"' in html
     assert 'id="catalog-do-filter"' in html
+    assert 'id="catalog-price-filter"' in html
+    assert 'id="catalog-group-select"' in html
+    assert 'id="catalog-page-size"' in html
+    assert 'id="catalog-view-controls"' in html
+    assert 'id="catalog-active-chips"' in html
+    assert 'id="catalog-group-toolbar"' in html
+    assert 'id="catalog-pagination"' in html
     assert 'id="catalog-wines-grid"' in html
+    assert "Carta Europea de Referencia" in html
+    assert "matchesCatalogPriceBand" in html
+    assert "buildPaginationModel" in html
+    assert "renderCatalogPaginationBar" in html
+    assert 'fetch("/api/v1/wines?limit=500")' in html
     assert 'id="progressionChart"' in html
+    assert "formatProgressionCourseLabel" in html
+    assert "wrapChartLabel" in html
+    assert "autoSkip: false" in html
+    assert 'c.wine.name.split(" ").slice(0, 2)' not in html
     assert 'id="cellar-analytics-grid"' in html
     assert 'id="cellar-add-form"' in html
     assert 'id="cellar-inventory-list"' in html
@@ -465,6 +489,8 @@ def test_dashboard_ui_zero_key_opensource_cartography() -> None:
     assert "vinum-editorial-tiles" in html
     assert "OpenStreetMap Editorial (Zero-Key Open Source)" in html
     assert 'id="atlas-basemap-bar"' in html
+    assert 'id="map-engine-label"' not in html
+    assert "Cartografía:" not in html
     assert 'data-basemap="osm-editorial"' in html
     assert 'data-basemap="ign-espana"' in html
     assert 'data-basemap="svg-offline"' in html
@@ -473,7 +499,7 @@ def test_dashboard_ui_zero_key_opensource_cartography() -> None:
 
 
 def test_dashboard_ui_european_atlas_and_country_filters() -> None:
-    """Verify GET / embeds European country selectors and dynamic flyToBounds."""
+    """Verify GET / embeds European country selectors, bounds, and SVG vector map."""
     response = client.get("/")
     assert response.status_code == 200
     html = response.text
@@ -485,5 +511,47 @@ def test_dashboard_ui_european_atlas_and_country_filters() -> None:
     assert 'id="catalog-country-filter"' in html
     assert "EUROPE_DEFAULT_VIEW" in html
     assert "COUNTRY_BOUNDS" in html
+    assert "fitAtlasToCurrentScope" in html
     assert "flyToBounds" in html
     assert "filterAtlasByCountry" in html
+    assert "atlasCountryFilter" not in html
+    assert "EUROPE_SVG_POLYGONS" in html
+    assert "toggleAtlasSvgVisibility" in html
+    assert "Atlas Vectorial Europeo (SVG Offline)" in html
+
+
+def test_dashboard_ui_dynamic_header_kpis() -> None:
+    """Verify GET / renders live DB catalog counts instead of hardcoded 36/12 labels."""
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+
+    assert "200 Vinos" in html
+    assert "32 D.O." in html
+    assert "32 Regiones · 200 Bodegas" in html
+    assert "Europa (4 Países)" in html
+    assert "Todos los países (4)" in html
+    assert "Todas las Denominaciones (32)" in html
+    assert "36 Vinos" not in html
+    assert "12 D.O." not in html
+    assert "36 bodegas emblemáticas" not in html
+
+
+def test_dashboard_ui_dynamic_header_kpis_reflect_catalog_changes(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Verify GET / reflects updated catalog stats and in-memory fallback counts."""
+    in_memory_engine = SommelierEngine(wines=sommelier.get_wines()[:3])
+    wines_n, regions_n, countries_n = in_memory_engine.get_catalog_stats()
+    assert wines_n == 3
+    assert regions_n >= 1
+    assert countries_n >= 1
+
+    monkeypatch.setattr(sommelier, "get_catalog_stats", lambda: (225, 35, 5))
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.text
+    assert "225 Vinos" in html
+    assert "35 D.O." in html
+    assert "35 Regiones · 225 Bodegas" in html
+    assert "Europa (5 Países)" in html
