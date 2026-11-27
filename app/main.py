@@ -33,10 +33,11 @@ from app.ui import render_dashboard_html
 app = FastAPI(
     title="Vinum Pulse",
     description=(
-        "European Real-Time Sommelier Radar, Dynamic Geo-Atlas (200 Wines, "
-        "4 Countries), Gastronomic Pairing Engine, and Cellar Analytics Platform."
+        "European Real-Time Sommelier Radar, Dynamic Geo-Atlas (225 Wines & Vermouths, "
+        "4 Countries), Gastronomic Pairing Engine, Flexible Evening Menu Planner, "
+        "and Cellar Analytics Platform."
     ),
-    version="0.3.0",
+    version="0.4.0",
 )
 
 rate_limiter = TokenBucketRateLimiter(

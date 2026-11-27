@@ -147,9 +147,9 @@ def test_sqlite_schema_evolution_from_legacy_wines_table() -> None:
     engine = SommelierEngine(session_factory=factory)
 
     all_wines = engine.get_wines(limit=300)
-    assert len(all_wines) == 200
+    assert len(all_wines) == 225
     ardanza = engine.get_wine_by_id("vina-ardanza-reserva")
     assert ardanza is not None
     assert ardanza.country == "España"
     assert ardanza.classification == "D.O.Ca."
-    assert len(engine.get_dishes()) == 45
+    assert len(engine.get_dishes()) == 50

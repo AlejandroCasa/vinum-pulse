@@ -14,6 +14,7 @@ class WineType(StrEnum):
     SPARKLING = "Sparkling"
     FORTIFIED = "Fortified"
     ROSE = "Rose"
+    VERMOUTH = "Vermouth"
 
 
 class SensoryRadar(BaseModel):
@@ -175,7 +176,10 @@ class WineProfile(BaseModel):
     def populate_silhouette(self) -> "WineProfile":
         """Auto-populate bottle silhouette geometry if not provided explicitly."""
         if not self.bottle_silhouette:
-            if self.wine_type == WineType.FORTIFIED or "Jerez" in self.appellation:
+            if (
+                self.wine_type in (WineType.FORTIFIED, WineType.VERMOUTH)
+                or "Jerez" in self.appellation
+            ):
                 self.bottle_silhouette = "Jerezana"
             elif self.wine_type == WineType.SPARKLING:
                 self.bottle_silhouette = "Espumosa"
@@ -385,11 +389,33 @@ class CellarCreateRequest(BaseModel):
     notes: str = Field(default="", description="Personal notes.")
 
 
+class CourseInput(BaseModel):
+    """Single course selection in a flexible 3-to-7 course evening menu."""
+
+    course_type: str = Field(
+        default="Principal",
+        min_length=1,
+        description=(
+            "Course stage type (e.g. Aperitivo, Entrante, Pescado / Marisco, "
+            "Pasta / Arroz, Principal, Quesos, Postre)."
+        ),
+    )
+    dish_id: str = Field(
+        ...,
+        min_length=1,
+        description="Dish identifier slug from the gastronomic catalog.",
+    )
+
+
 class EveningCoursePairing(BaseModel):
     """Pairing details for a single course in the evening progression."""
 
     course_number: int = Field(
-        ..., ge=1, le=3, description="Course sequence index (1, 2, 3)."
+        ..., ge=1, le=7, description="Course sequence index (1 to 7)."
+    )
+    course_type: str = Field(
+        default="Principal",
+        description="Selected culinary stage type for this course.",
     )
     course_title: str = Field(..., description="Human-readable course stage label.")
     dish: Dish = Field(..., description="Selected dish for this course.")
@@ -420,7 +446,7 @@ class EveningCoursePairing(BaseModel):
 
 
 class EveningMenuRequest(BaseModel):
-    """Incoming request to plan a 3-course evening wine progression within a budget."""
+    """Incoming request to plan a flexible 3-to-7 course evening wine progression."""
 
     occasion: str = Field(
         default="Cena Romántica",
@@ -430,24 +456,58 @@ class EveningMenuRequest(BaseModel):
             "Comida Familiar de Domingo, Tardeo & Tapas Gourmet)."
         ),
     )
-    starter_dish_id: str = Field(
-        ..., min_length=1, description="First course (starter/tapas) dish ID."
+    courses: list[CourseInput] | None = Field(
+        default=None,
+        min_length=3,
+        max_length=7,
+        description="Flexible ordered list of 3 to 7 courses with type and dish ID.",
     )
-    main_dish_id: str = Field(
-        ..., min_length=1, description="Second course (main) dish ID."
+    starter_dish_id: str | None = Field(
+        default=None,
+        min_length=1,
+        description="Legacy first course (starter/tapas) dish ID.",
     )
-    dessert_dish_id: str = Field(
-        ..., min_length=1, description="Third course (dessert/cheese) dish ID."
+    main_dish_id: str | None = Field(
+        default=None,
+        min_length=1,
+        description="Legacy second course (main) dish ID.",
+    )
+    dessert_dish_id: str | None = Field(
+        default=None,
+        min_length=1,
+        description="Legacy third course (dessert/cheese) dish ID.",
     )
     total_budget_eur: float = Field(
         default=90.0,
         gt=0.0,
-        description="Total combined budget in EUR for the 3-bottle evening plan.",
+        description="Total combined budget in EUR for the evening menu plan.",
     )
+
+    @model_validator(mode="after")
+    def validate_course_definition(self) -> "EveningMenuRequest":
+        """Require either a 3-to-7 courses list or the 3 legacy dish IDs."""
+        if self.courses is not None:
+            return self
+        if self.starter_dish_id and self.main_dish_id and self.dessert_dish_id:
+            return self
+        raise ValueError(
+            "Provide either 'courses' (3 to 7 items) or all three legacy fields "
+            "('starter_dish_id', 'main_dish_id', 'dessert_dish_id')."
+        )
+
+    def resolved_courses(self) -> list[CourseInput]:
+        """Return normalized list of CourseInput items from flexible or legacy input."""
+        if self.courses is not None:
+            return list(self.courses)
+        return [
+            CourseInput(course_type="Entrante", dish_id=str(self.starter_dish_id)),
+            CourseInput(course_type="Principal", dish_id=str(self.main_dish_id)),
+            CourseInput(course_type="Postre", dish_id=str(self.dessert_dish_id)),
+        ]
 
 
 class EveningMenuPlan(BaseModel):
-    """Structured 3-course evening sommelier menu plan and tasting guide."""
+    """Structured 3-to-7 course evening sommelier menu plan and tasting guide."""
 
     occasion: str = Field(..., description="Evening occasion title.")
     occasion_ambience_tip: str = Field(
@@ -455,26 +515,25 @@ class EveningMenuPlan(BaseModel):
     )
     total_budget_eur: float = Field(..., description="Requested total budget in EUR.")
     total_price_eur: float = Field(
-        ..., description="Actual combined price of the 3 recommended bottles."
+        ..., description="Actual combined price of the recommended bottles."
     )
     average_compatibility_score: float = Field(
-        ..., description="Average sensory affinity across the 3 courses."
+        ..., description="Average sensory affinity across all courses."
     )
     progression_valid: bool = Field(
         default=True,
         description=(
-            "Whether the 3-course selection satisfies light-to-full "
-            "sommelier progression."
+            "Whether the selection satisfies light-to-full sommelier progression."
         ),
     )
     progression_summary: str = Field(
-        ..., description="Plain-language explanation of the 3-wine sensory progression."
+        ..., description="Plain-language explanation of the multi-course progression."
     )
     courses: list[EveningCoursePairing] = Field(
         ...,
         min_length=3,
-        max_length=3,
-        description="Ordered 3-course wine progression.",
+        max_length=7,
+        description="Ordered 3-to-7 course wine progression.",
     )
     printable_card_title: str = Field(
         ..., description="Editorial title for the printable guest menu card."

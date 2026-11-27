@@ -597,6 +597,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                                 <button type="button" data-type="White" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso cursor-pointer">Blanco</button>
                                 <button type="button" data-type="Sparkling" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso cursor-pointer">Espumoso</button>
                                 <button type="button" data-type="Fortified" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso cursor-pointer">Generoso</button>
+                                <button type="button" data-type="Vermouth" class="style-tab pb-1.5 text-sm border-b-2 border-transparent text-walnut hover:text-espresso cursor-pointer">Vermut</button>
                             </div>
                         </div>
                     </section>
@@ -764,6 +765,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                             <button type="button" data-type="Sparkling" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Espumoso</button>
                             <button type="button" data-type="Rose" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Rosado</button>
                             <button type="button" data-type="Fortified" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Generoso</button>
+                            <button type="button" data-type="Vermouth" class="catalog-type-pill px-2.5 py-1 rounded border border-espresso/15 bg-cream text-walnut hover:text-espresso cursor-pointer">Vermut</button>
                         </div>
 
                         <div id="catalog-view-controls" class="flex flex-wrap items-center gap-2 text-xs font-mono">
@@ -833,7 +835,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                         Diseñador Interactivo de Veladas &amp; Carta de Sumiller Imprimible
                     </h2>
                     <p class="font-serif italic text-base text-walnut">
-                        Planifica un menú de 3 pases con progresión enológica óptima, guía de nevera/descorche sin tecnicismos y carta lista para tus invitados
+                        Planifica un menú flexible de 3 a 7 pases con progresión enológica óptima, guía de nevera/descorche sin tecnicismos y carta lista para tus invitados
                     </p>
                 </div>
 
@@ -867,48 +869,32 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     </div>
                 </div>
 
-                <!-- Paso 2: Configurar el Menú de 3 Pases y Presupuesto Total -->
+                <!-- Paso 2: Configurar el Menú Flexible (3 a 7 Pases) y Presupuesto Total -->
                 <div id="plan-inputs-container" class="bg-butter/40 border border-espresso/12 rounded p-6 space-y-6 no-print">
-                    <div class="flex items-center justify-between text-xs font-mono text-walnut border-b border-espresso/10 pb-2">
-                        <span>Paso 2 · Configura el Menú de 3 Pases y Presupuesto Total</span>
-                        <span class="text-bordeaux font-medium">3 Vinos Maridados</span>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="space-y-2">
-                            <label for="plan-starter-select" class="block text-xs font-mono text-walnut uppercase tracking-wide">
-                                1.º Pase · Entrante / Aperitivo
-                            </label>
-                            <select id="plan-starter-select" class="w-full bg-cream border border-espresso/20 rounded p-2.5 text-sm font-serif text-espresso focus:border-bordeaux focus:ring-0"></select>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="plan-main-select" class="block text-xs font-mono text-walnut uppercase tracking-wide">
-                                2.º Pase · Plato Principal
-                            </label>
-                            <select id="plan-main-select" class="w-full bg-cream border border-espresso/20 rounded p-2.5 text-sm font-serif text-espresso focus:border-bordeaux focus:ring-0"></select>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="plan-dessert-select" class="block text-xs font-mono text-walnut uppercase tracking-wide">
-                                3.º Pase · Quesos o Postre
-                            </label>
-                            <select id="plan-dessert-select" class="w-full bg-cream border border-espresso/20 rounded p-2.5 text-sm font-serif text-espresso focus:border-bordeaux focus:ring-0"></select>
+                    <div class="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-walnut border-b border-espresso/10 pb-2">
+                        <span>Paso 2 · Configura los Pases (de 3 a 7 platos) y el Presupuesto Total</span>
+                        <div class="flex items-center gap-3">
+                            <span id="plan-courses-count-badge" class="text-bordeaux font-medium">3 Pases · 3 Vinos Maridados</span>
+                            <button type="button" id="btn-add-course" class="px-2.5 py-1 rounded border border-bordeaux/40 text-bordeaux hover:bg-bordeaux hover:text-cream transition text-[11px] font-mono cursor-pointer">
+                                + Añadir pase
+                            </button>
                         </div>
                     </div>
+
+                    <div id="plan-courses-builder" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
                     <!-- Total Budget Slider & Action Button -->
                     <div class="pt-2 border-t border-espresso/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div class="space-y-2 flex-1 max-w-md">
                             <div class="flex justify-between items-baseline text-xs font-mono text-walnut">
-                                <label for="plan-budget-slider">Presupuesto total de la velada (3 botellas)</label>
+                                <label id="plan-budget-label" for="plan-budget-slider">Presupuesto total de la velada (3 botellas)</label>
                                 <span id="plan-budget-value" class="text-base text-bordeaux font-medium tabular-nums">110 €</span>
                             </div>
-                            <input id="plan-budget-slider" type="range" min="45" max="250" step="5" value="110" class="w-full cursor-pointer">
+                            <input id="plan-budget-slider" type="range" min="45" max="500" step="5" value="110" class="w-full cursor-pointer">
                             <div class="flex justify-between text-[10px] font-mono text-walnut/70">
                                 <span>45 €</span>
-                                <span>110 €</span>
                                 <span>250 €</span>
+                                <span>500 €</span>
                             </div>
                         </div>
 
@@ -947,8 +933,8 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                     <div id="progression-chart-panel" class="bg-cream border border-espresso/15 rounded p-5 space-y-3 no-print">
                         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-espresso/10 pb-2">
                             <div>
-                                <h3 class="font-serif text-xl text-espresso">Curva de Progresión Sensorial en Tres Tiempos</h3>
-                                <p class="text-xs text-walnut">Evolución equilibrada de cuerpo, acidez, estructura tánica y crianza del 1.º al 3.º pase</p>
+                                <h3 id="progression-chart-title" class="font-serif text-xl text-espresso">Curva de Progresión Sensorial</h3>
+                                <p id="progression-chart-subtitle" class="text-xs text-walnut">Evolución equilibrada de cuerpo, acidez, estructura tánica y crianza a lo largo de la velada</p>
                             </div>
                             <span id="plan-progression-badge" class="text-[11px] font-mono px-2.5 py-1 rounded bg-sage/15 text-sage border border-sage/30">
                                 Progresión Validada
@@ -971,7 +957,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                                 <span class="h-px w-10 bg-espresso/25"></span>
                             </div>
                             <h3 id="print-card-title" class="font-serif text-3xl sm:text-4xl text-espresso tracking-tight">Cena Romántica</h3>
-                            <p class="font-serif italic text-sm text-walnut">Maridaje enológico de tres pases preparado por el Sumiller de Vinum Pulse</p>
+                            <p id="print-card-subtitle" class="font-serif italic text-sm text-walnut">Maridaje enológico preparado por el Sumiller de Vinum Pulse</p>
                         </div>
 
                         <div id="print-courses-list" class="space-y-6 divide-y divide-espresso/10"></div>
@@ -1205,6 +1191,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             "Embutidos y Quesos",
             "Pescados y Mariscos",
             "Arroces",
+            "Pasta",
             "Carnes y Caza",
             "Postres y Dulces",
             "Platos Vegetarianos y Setas"
@@ -1230,6 +1217,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             if (cat.includes("Embutido") || cat.includes("Queso")) return "Embutidos y Quesos";
             if (cat.includes("Pescado") || cat.includes("Marisco")) return "Pescados y Mariscos";
             if (cat.includes("Arroz") || cat.includes("Arroces")) return "Arroces";
+            if (cat.includes("Pasta")) return "Pasta";
             if (cat.includes("Postre") || cat.includes("Dulce")) return "Postres y Dulces";
             if (cat.includes("Vegetariano") || cat.includes("Seta")) return "Platos Vegetarianos y Setas";
             return cat;
@@ -1725,10 +1713,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 planSlider.addEventListener("change", () => generateMenuPlan());
             }
 
-            ["plan-starter-select", "plan-main-select", "plan-dessert-select"].forEach(id => {
-                document.getElementById(id)?.addEventListener("change", () => generateMenuPlan());
-            });
-
+            document.getElementById("btn-add-course")?.addEventListener("click", () => addPlannerCourse());
             document.getElementById("btn-generate-menu-plan")?.addEventListener("click", () => generateMenuPlan());
 
             document.getElementById("btn-add-trio-cellar")?.addEventListener("click", async () => {
@@ -2159,7 +2144,7 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             poolWithoutType.forEach(w => {
                 counts[w.wine_type] = (counts[w.wine_type] || 0) + 1;
             });
-            const baseTypes = ["Red", "White", "Sparkling", "Rose", "Fortified"];
+            const baseTypes = ["Red", "White", "Sparkling", "Rose", "Fortified", "Vermouth"];
             const extraTypes = Object.keys(counts).filter(t => !baseTypes.includes(t));
             const types = ["", ...baseTypes, ...extraTypes];
 
@@ -3231,25 +3216,189 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             showToast(`Mostrando ${wine.winery} en el Atlas de Terroirs`);
         }
 
+        const PLANNER_COURSE_TYPES = [
+            { value: "Aperitivo", categories: ["Tapas y Pintxos", "Embutidos y Quesos"], defaultDish: "gilda-antxoa-piparra" },
+            { value: "Entrante", categories: ["Entrantes y Cuchara", "Ensaladas y Huerta"], defaultDish: "salmorejo-cordobes" },
+            { value: "Pescado / Marisco", categories: ["Pescados y Mariscos"], defaultDish: "rodaballo-brasa" },
+            { value: "Pasta / Arroz", categories: ["Pasta", "Arroces"], defaultDish: "tagliatelle-al-tartufo" },
+            { value: "Principal", categories: ["Carnes y Caza", "Platos Vegetarianos y Setas"], defaultDish: "chuleton-brasa" },
+            { value: "Quesos", categories: ["Embutidos y Quesos"], defaultDish: "queso-manchego" },
+            { value: "Postre", categories: ["Postres y Dulces"], defaultDish: "tarta-queso-idiazabal" }
+        ];
+
+        const PLANNER_EXTRA_SEQUENCE = ["Aperitivo", "Pescado / Marisco", "Pasta / Arroz", "Quesos"];
+
+        let plannerCourses = [
+            { course_type: "Entrante", dish_id: "salmorejo-cordobes" },
+            { course_type: "Principal", dish_id: "chuleton-brasa" },
+            { course_type: "Postre", dish_id: "queso-manchego" }
+        ];
+
+        function inferCourseTypeForCategory(cat) {
+            if (cat === "Tapas y Pintxos") return "Aperitivo";
+            if (cat === "Entrantes y Cuchara" || cat === "Ensaladas y Huerta") return "Entrante";
+            if (cat === "Pescados y Mariscos") return "Pescado / Marisco";
+            if (cat === "Pasta" || cat === "Arroces") return "Pasta / Arroz";
+            if (cat === "Embutidos y Quesos") return "Quesos";
+            if (cat === "Postres y Dulces") return "Postre";
+            return "Principal";
+        }
+
+        function getDefaultDishForCourseType(courseType) {
+            const spec = PLANNER_COURSE_TYPES.find(t => t.value === courseType);
+            if (spec && allDishes.some(d => d.id === spec.defaultDish)) return spec.defaultDish;
+            const preferredSet = new Set(spec ? spec.categories : []);
+            const match = allDishes.find(d => preferredSet.has(getCategoryForDish(d)));
+            return match ? match.id : (allDishes[0]?.id || "chuleton-brasa");
+        }
+
+        function syncPlannerBudgetControls() {
+            const count = plannerCourses.length;
+            const badge = document.getElementById("plan-courses-count-badge");
+            if (badge) badge.textContent = `${count} Pases · ${count} Vinos Maridados`;
+            const btnGen = document.getElementById("btn-generate-menu-plan");
+            if (btnGen) btnGen.textContent = `Diseñar Velada de ${count} Pases`;
+            const budgetLabel = document.getElementById("plan-budget-label");
+            if (budgetLabel) budgetLabel.textContent = `Presupuesto total de la velada (${count} botellas)`;
+            const addBtn = document.getElementById("btn-add-course");
+            if (addBtn) {
+                addBtn.disabled = count >= 7;
+                addBtn.classList.toggle("opacity-40", count >= 7);
+                addBtn.classList.toggle("cursor-not-allowed", count >= 7);
+            }
+            const slider = document.getElementById("plan-budget-slider");
+            const valLabel = document.getElementById("plan-budget-value");
+            if (slider && valLabel) {
+                const minSuggested = count * 20;
+                if (parseFloat(slider.value) < minSuggested) {
+                    const bumped = Math.min(500, Math.ceil(minSuggested / 5) * 5);
+                    slider.value = bumped;
+                    valLabel.textContent = `${bumped} €`;
+                }
+            }
+        }
+
+        function buildDishOptionsForCourseType(courseType, selectedId) {
+            const spec = PLANNER_COURSE_TYPES.find(t => t.value === courseType);
+            const preferredSet = new Set(spec ? spec.categories : []);
+            const preferred = allDishes.filter(d => preferredSet.has(getCategoryForDish(d)));
+            const others = allDishes.filter(d => !preferredSet.has(getCategoryForDish(d)));
+            const optHtml = (list) => list.map(d =>
+                `<option value="${escapeHtml(d.id)}" ${d.id === selectedId ? "selected" : ""}>${escapeHtml(d.name)} (${escapeHtml(d.category)})</option>`
+            ).join("");
+            return `<optgroup label="Recomendados para ${escapeHtml(courseType)}">${optHtml(preferred)}</optgroup>` +
+                `<optgroup label="Toda La Carte">${optHtml(others)}</optgroup>`;
+        }
+
+        function renderPlannerCourses() {
+            const container = document.getElementById("plan-courses-builder");
+            if (!container || allDishes.length === 0) return;
+
+            syncPlannerBudgetControls();
+            const canRemove = plannerCourses.length > 3;
+
+            container.innerHTML = plannerCourses.map((course, idx) => {
+                const typeOpts = PLANNER_COURSE_TYPES.map(t =>
+                    `<option value="${escapeHtml(t.value)}" ${t.value === course.course_type ? "selected" : ""}>${escapeHtml(t.value)}</option>`
+                ).join("");
+                const dishOpts = buildDishOptionsForCourseType(course.course_type, course.dish_id);
+                return `
+                    <div class="bg-cream/90 border border-espresso/15 rounded p-3.5 space-y-2.5" data-course-index="${idx}">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-mono text-bordeaux uppercase tracking-wide font-semibold">${idx + 1}.º Pase</span>
+                            ${canRemove ? `<button type="button" data-remove-course="${idx}" class="btn-remove-course text-[11px] font-mono text-walnut hover:text-bordeaux px-1.5 py-0.5 rounded border border-espresso/15 cursor-pointer" title="Quitar pase">&times; Quitar</button>` : `<span class="text-[10px] font-mono text-walnut/70">Pase base</span>`}
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-mono text-walnut uppercase tracking-wide">Tipo de plato</label>
+                            <select data-course-type-idx="${idx}" class="plan-course-type-select w-full bg-butter/50 border border-espresso/20 rounded px-2.5 py-1.5 text-xs font-mono text-espresso focus:border-bordeaux focus:ring-0">
+                                ${typeOpts}
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-mono text-walnut uppercase tracking-wide">Plato de La Carte</label>
+                            <select data-course-dish-idx="${idx}" class="plan-course-dish-select w-full bg-cream border border-espresso/20 rounded p-2 text-sm font-serif text-espresso focus:border-bordeaux focus:ring-0">
+                                ${dishOpts}
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+
+            container.querySelectorAll(".plan-course-type-select").forEach(sel => {
+                sel.addEventListener("change", (e) => {
+                    const idx = parseInt(sel.getAttribute("data-course-type-idx"), 10);
+                    const newType = e.target.value;
+                    plannerCourses[idx].course_type = newType;
+                    plannerCourses[idx].dish_id = getDefaultDishForCourseType(newType);
+                    renderPlannerCourses();
+                    generateMenuPlan();
+                });
+            });
+
+            container.querySelectorAll(".plan-course-dish-select").forEach(sel => {
+                sel.addEventListener("change", (e) => {
+                    const idx = parseInt(sel.getAttribute("data-course-dish-idx"), 10);
+                    plannerCourses[idx].dish_id = e.target.value;
+                    generateMenuPlan();
+                });
+            });
+
+            container.querySelectorAll(".btn-remove-course").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-remove-course"), 10);
+                    removePlannerCourse(idx);
+                });
+            });
+        }
+
+        function addPlannerCourse() {
+            if (plannerCourses.length >= 7) return;
+            const nextType = PLANNER_EXTRA_SEQUENCE[(plannerCourses.length - 3) % PLANNER_EXTRA_SEQUENCE.length] || "Principal";
+            const newCourse = {
+                course_type: nextType,
+                dish_id: getDefaultDishForCourseType(nextType)
+            };
+            const insertAt = Math.max(1, plannerCourses.length - 1);
+            plannerCourses.splice(insertAt, 0, newCourse);
+            const slider = document.getElementById("plan-budget-slider");
+            const valLabel = document.getElementById("plan-budget-value");
+            if (slider && valLabel) {
+                const updated = Math.min(500, parseFloat(slider.value) + 35);
+                slider.value = updated;
+                valLabel.textContent = `${updated} €`;
+            }
+            renderPlannerCourses();
+            generateMenuPlan();
+            showToast(`Pase añadido (${plannerCourses.length} platos en la velada)`);
+        }
+
+        function removePlannerCourse(idx) {
+            if (plannerCourses.length <= 3) return;
+            plannerCourses.splice(idx, 1);
+            renderPlannerCourses();
+            generateMenuPlan();
+        }
+
         function bridgePairingToVeladas() {
             const dish = allDishes.find(d => d.id === selectedDishId);
             if (!dish) return;
             const cat = getCategoryForDish(dish);
+            const inferredType = inferCourseTypeForCategory(cat);
 
-            let targetSelectId = "plan-main-select";
-            if (cat === "Entrantes y Cuchara" || cat === "Ensaladas y Huerta" || cat === "Tapas y Pintxos" || cat === "Platos Vegetarianos y Setas") {
-                targetSelectId = "plan-starter-select";
-            } else if (cat === "Embutidos y Quesos" || cat === "Postres y Dulces") {
-                targetSelectId = "plan-dessert-select";
+            let targetIdx = 1;
+            if (inferredType === "Aperitivo" || inferredType === "Entrante") {
+                targetIdx = 0;
+            } else if (inferredType === "Quesos" || inferredType === "Postre") {
+                targetIdx = plannerCourses.length - 1;
             }
 
-            const selectEl = document.getElementById(targetSelectId);
-            if (selectEl) {
-                selectEl.value = dish.id;
+            if (plannerCourses[targetIdx]) {
+                plannerCourses[targetIdx] = { course_type: inferredType, dish_id: dish.id };
             }
+            renderPlannerCourses();
 
             const singleBudget = parseFloat(document.getElementById("budget-slider")?.value || "50");
-            const smartTotalBudget = Math.min(250, Math.max(45, Math.round((singleBudget * 2.4) / 5) * 5));
+            const smartTotalBudget = Math.min(500, Math.max(45, Math.round((singleBudget * plannerCourses.length * 0.85) / 5) * 5));
             const planSlider = document.getElementById("plan-budget-slider");
             const planVal = document.getElementById("plan-budget-value");
             if (planSlider && planVal) {
@@ -3262,46 +3411,29 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             showToast(`Velada adaptada con "${dish.name}" (${smartTotalBudget} € total)`);
         }
 
-        /* --- Evening & 3-Course Menu Sommelier Planner (Tab 3) --- */
+        /* --- Evening & Flexible 3-to-7 Course Menu Sommelier Planner (Tab 3) --- */
 
         function populatePlannerSelects() {
-            const starterSelect = document.getElementById("plan-starter-select");
-            const mainSelect = document.getElementById("plan-main-select");
-            const dessertSelect = document.getElementById("plan-dessert-select");
-            if (!starterSelect || !mainSelect || !dessertSelect || allDishes.length === 0) return;
-
-            const starterCats = new Set(["Entrantes y Cuchara", "Tapas y Pintxos", "Ensaladas y Huerta"]);
-            const mainCats = new Set(["Carnes y Caza", "Pescados y Mariscos", "Arroces", "Platos Vegetarianos y Setas"]);
-            const dessertCats = new Set(["Embutidos y Quesos", "Postres y Dulces"]);
-
-            const buildGroupedOptions = (preferredSet, defaultId) => {
-                const preferred = allDishes.filter(d => preferredSet.has(getCategoryForDish(d)));
-                const others = allDishes.filter(d => !preferredSet.has(getCategoryForDish(d)));
-                const optHtml = (list) => list.map(d =>
-                    `<option value="${escapeHtml(d.id)}" ${d.id === defaultId ? 'selected' : ''}>${escapeHtml(d.name)} (${escapeHtml(d.category)})</option>`
-                ).join("");
-                return `<optgroup label="Recomendados para este pase">${optHtml(preferred)}</optgroup>` +
-                    `<optgroup label="Toda La Carte">${optHtml(others)}</optgroup>`;
-            };
-
-            starterSelect.innerHTML = buildGroupedOptions(starterCats, "salmorejo-cordobes");
-            mainSelect.innerHTML = buildGroupedOptions(mainCats, "chuleton-brasa");
-            dessertSelect.innerHTML = buildGroupedOptions(dessertCats, "queso-manchego");
+            if (allDishes.length === 0) return;
+            plannerCourses = plannerCourses.map(c => ({
+                course_type: c.course_type,
+                dish_id: allDishes.some(d => d.id === c.dish_id) ? c.dish_id : getDefaultDishForCourseType(c.course_type)
+            }));
+            renderPlannerCourses();
         }
 
         let lastGeneratedMenuPlan = null;
 
         async function generateMenuPlan() {
-            const starterId = document.getElementById("plan-starter-select")?.value || "salmorejo-cordobes";
-            const mainId = document.getElementById("plan-main-select")?.value || "chuleton-brasa";
-            const dessertId = document.getElementById("plan-dessert-select")?.value || "queso-manchego";
             const budget = parseFloat(document.getElementById("plan-budget-slider")?.value || "110");
+            const coursesPayload = plannerCourses.map(c => ({
+                course_type: c.course_type,
+                dish_id: c.dish_id
+            }));
 
             const payload = {
                 occasion: selectedOccasion,
-                starter_dish_id: starterId,
-                main_dish_id: mainId,
-                dessert_dish_id: dessertId,
+                courses: coursesPayload,
                 total_budget_eur: budget
             };
 
@@ -3321,34 +3453,43 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
                 console.warn("Endpoint /api/v1/pairings/menu-plan no disponible:", err);
             }
 
-            const fallbackData = buildLocalMenuPlan(selectedOccasion, starterId, mainId, dessertId);
+            const fallbackData = buildLocalMenuPlan(selectedOccasion, coursesPayload);
             lastGeneratedMenuPlan = fallbackData;
             renderMenuPlanResults(fallbackData);
         }
 
-        function buildLocalMenuPlan(occasion, starterId, mainId, dessertId) {
-            const starterDish = allDishes.find(d => d.id === starterId) || { name: "Salmorejo cordobés", description: "Crema fría de tomate y jamón ibérico" };
-            const mainDish = allDishes.find(d => d.id === mainId) || { name: "Chuletón de vaca vieja", description: "Corte madurado a la brasa" };
-            const dessertDish = allDishes.find(d => d.id === dessertId) || { name: "Queso Manchego Curado", description: "Leche cruda de oveja en cueva" };
-
+        function buildLocalMenuPlan(occasion, coursesPayload) {
             const defaultWines = [
                 { id: "gramona-imperial", name: "Gramona Imperial Brut Nature", winery: "Gramona", appellation: "Corpinnat", vintage: 2017, price_eur: 24.50, tagline: "Burbuja cremosa y acidez gastronómica.", sensory: { body: 5.5, acidity: 8.5, tannins: 1.5, fruit: 7.0, oak: 4.5 }, vintage_label: "En su cumbre hoy", vintage_color: "green", fridge: "2 horas en nevera (8 °C)", uncork: "Descorche directo", note: "Acidez viva que limpia el paladar." },
                 { id: "vina-ardanza-reserva", name: "Viña Ardanza Reserva", winery: "La Rioja Alta, S.A.", appellation: "D.O.Ca. Rioja", vintage: 2017, price_eur: 34.00, tagline: "Elegancia clásica riojana de taninos sedosos.", sensory: { body: 7.5, acidity: 7.0, tannins: 7.5, fruit: 7.5, oak: 8.0 }, vintage_label: "Plenitud de guarda", vintage_color: "gold", fridge: "20 min en nevera (16 °C)", uncork: "Decantar 30 min", note: "Nervio tánico elegante para el plato principal." },
                 { id: "la-panesa-fino", name: "Fino La Panesa Especial", winery: "Emilio Hidalgo", appellation: "D.O. Jerez-Xérès-Sherry", vintage: 2018, price_eur: 32.00, tagline: "Salinidad y almendra verde en bota.", sensory: { body: 6.5, acidity: 7.5, tannins: 2.0, fruit: 4.5, oak: 8.5 }, vintage_label: "Solera viva", vintage_color: "gold", fridge: "40 min en nevera (12 °C)", uncork: "Copa amplia", note: "Salinidad noble para quesos curados y cierre." }
             ];
 
+            const builtCourses = (coursesPayload || []).map((c, idx) => {
+                const dish = allDishes.find(d => d.id === c.dish_id) || { name: "Plato seleccionado", description: "" };
+                const w = defaultWines[idx % defaultWines.length];
+                return {
+                    course_number: idx + 1,
+                    course_type: c.course_type,
+                    course_title: `${idx + 1}.º Pase · ${c.course_type}`,
+                    dish: dish,
+                    wine: w,
+                    vintage_status_label: w.vintage_label,
+                    vintage_semaphore: w.vintage_color,
+                    fridge_tip: w.fridge,
+                    uncork_tip: w.uncork,
+                    sommelier_note: w.note
+                };
+            });
+
             return {
                 occasion: occasion,
-                total_price_eur: 90.50,
+                total_price_eur: builtCourses.reduce((acc, c) => acc + (c.wine.price_eur || 0), 0),
                 average_compatibility_score: 95.2,
                 progression_valid: true,
                 occasion_ambience_tip: "Copas finas preparadas por comensal y servicio pausado entre pases.",
-                progression_summary: "Progresión armónica ascendente en tres tiempos.",
-                courses: [
-                    { course_number: 1, course_title: "1.º Pase · Entrante", dish: starterDish, wine: defaultWines[0], vintage_status_label: defaultWines[0].vintage_label, vintage_semaphore: "green", fridge_tip: defaultWines[0].fridge, uncork_tip: defaultWines[0].uncork, sommelier_note: defaultWines[0].note },
-                    { course_number: 2, course_title: "2.º Pase · Principal", dish: mainDish, wine: defaultWines[1], vintage_status_label: defaultWines[1].vintage_label, vintage_semaphore: "gold", fridge_tip: defaultWines[1].fridge, uncork_tip: defaultWines[1].uncork, sommelier_note: defaultWines[1].note },
-                    { course_number: 3, course_title: "3.º Pase · Cierre", dish: dessertDish, wine: defaultWines[2], vintage_status_label: defaultWines[2].vintage_label, vintage_semaphore: "gold", fridge_tip: defaultWines[2].fridge, uncork_tip: defaultWines[2].uncork, sommelier_note: defaultWines[2].note }
-                ]
+                progression_summary: `Progresión armónica ascendente en ${builtCourses.length} pases.`,
+                courses: builtCourses
             };
         }
 
@@ -3462,6 +3603,12 @@ _DASHBOARD_TEMPLATE = """<!DOCTYPE html>
             document.getElementById("plan-avg-score").textContent = `${avgScore.toFixed(1)}%`;
             document.getElementById("plan-ambience-tip").textContent = `Ambiente: ${ambienceTip}`;
             document.getElementById("plan-progression-summary").textContent = progressionSummary;
+            const addAllBtn = document.getElementById("btn-add-trio-cellar");
+            if (addAllBtn) addAllBtn.textContent = `+ Añadir ${courses.length} botellas a Bodega`;
+            const progTitle = document.getElementById("progression-chart-title");
+            if (progTitle) progTitle.textContent = `Curva de Progresión Sensorial (${courses.length} Pases)`;
+            const printSub = document.getElementById("print-card-subtitle");
+            if (printSub) printSub.textContent = `Maridaje enológico de ${courses.length} pases preparado por el Sumiller de Vinum Pulse`;
 
             renderProgressionChart(courses, data.progression_valid);
 
